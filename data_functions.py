@@ -25,7 +25,7 @@ class DataFunctions():
                 new_frame[frame.columns[column]] = frame[frame.columns[column]].apply(lambda x: np.nan if type(x) == str else x)
         return new_frame
 
-    def get_coeffs(x, y) -> np.array:
+    def get_coeffs(x, y, n=7) -> np.array:
         """Функция возвращает уравнение полинома, по которому можно будет найти значение
         аргумента.
 
@@ -37,7 +37,7 @@ class DataFunctions():
             np.array: Коэффициенты уравнения полинома.
         """
         rmse = []
-        for i in range(7):
+        for i in range(n):
             if i >= len(x):
                 break    
             coefficient = np.polyfit(x, y, i)
@@ -48,7 +48,7 @@ class DataFunctions():
         
         return y_coeff
 
-    def get_fit(x, y) -> np.array:
+    def get_fit(x, y, n=7) -> np.array:
         """Функция возвращает аппроксимизированные значение
         кривой полиномом 0-6 порядка
 
@@ -60,7 +60,7 @@ class DataFunctions():
             np.array: Значения полинома функции аргумента кривой
         """
         rmse = []
-        for i in range(7):
+        for i in range(n):
             if i >= len(x):
                 break    
             coefficient = np.polyfit(x, y, i)
