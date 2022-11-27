@@ -176,7 +176,7 @@ class Calculations():
             print(f"Оптимальное флегмовое число = {np.round(R[optimal],2)}")
         return Ropt
     
-    def calculate_slice(liquid_fraction, vapor_fraction, temperature, Substance, Ma, Mb, slice_type = 'DataFrame'):
+    def calculate_properties_slice(liquid_fraction, vapor_fraction, temperature, Substance, Ma, Mb, slice_type = 'DataFrame'):
         
         thermal_conductivity_a = Calculations.get_value(component= Substance['A'], 
                     attribute='thermal_conductivity_organic_liquid', temperature=temperature)
@@ -300,7 +300,7 @@ class Calculations():
 
         for fraction in fraction_list:
             liquid_fraction, vapor_fraction, temperature, Ma, Mb = slice_values(fraction, balance)
-            slice = Calculations.calculate_slice(liquid_fraction, vapor_fraction, temperature, Substance, Ma, Mb)
+            slice = Calculations.calculate_properties_slice(liquid_fraction, vapor_fraction, temperature, Substance, Ma, Mb)
             properties = pd.concat([properties, slice])
         
         properties.index = ['куба', 'низа','питания','верха','дистиллята']
