@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from data_functions import DataFunctions as dfc
-from filling_column_functions import Calculations as clc
+from column_functions import Calculations as clc
 
 
 
