@@ -111,22 +111,22 @@ class Calculations():
                 mass_transfer_factor()
                 *(values['локальная эффективность по пару']+liquid_entrainment(loc='низа')/tg(x))
                 /(1-bypass_fraction(loc='низа'))
-                /(1 + liquid_entrainment(loc='низа')/tg(x)*mass_transfer_factor()))
+                /(1+liquid_entrainment(loc='низа')/tg(x)*mass_transfer_factor()))
             
             values["Мёрфи 2"] = (
                 values['локальная эффективность по пару']
                 /values['B']
-                *((1 + values['B']/mixing_cells())**mixing_cells() - 1))
+                *((1+values['B']/mixing_cells())**mixing_cells() - 1))
             
             values["Мёрфи 1"] = (
                 values["Мёрфи 2"]
-                /(1 + mass_transfer_factor()*bypass_fraction(loc='низа')*values["Мёрфи 2"]
+                /(1+mass_transfer_factor()*bypass_fraction(loc='низа')*values["Мёрфи 2"]
                 /(1-bypass_fraction(loc='низа'))))
             
             values['эффективность по Мёрфи'] = (
                 values["Мёрфи 1"]
-                /(1 + liquid_entrainment(loc='низа')*mass_transfer_factor()*values["Мёрфи 1"]
-                /(tg(x) * (1-bypass_fraction(loc='низа')))))
+                /(1+liquid_entrainment(loc='низа')*mass_transfer_factor()*values["Мёрфи 1"]
+                /(tg(x)*(1-bypass_fraction(loc='низа')))))
             
             values['значение кинетической кривой'] = get_kinetic_y(x, values['эффективность по Мёрфи'], loc='низа')
             
@@ -149,21 +149,21 @@ class Calculations():
                 mass_transfer_factor()
                 *(values['локальная эффективность по пару']+liquid_entrainment(loc='верха')/tg(x))
                 /(1-bypass_fraction(loc='верха'))
-                /(1 + liquid_entrainment(loc='верха')/tg(x)*mass_transfer_factor()))
+                /(1+liquid_entrainment(loc='верха')/tg(x)*mass_transfer_factor()))
             
             values["Мёрфи 2"] = (
                 values['локальная эффективность по пару']
                 /values['B']
-                *((1 + values['B']/mixing_cells())**mixing_cells() - 1))
+                *((1+values['B']/mixing_cells())**mixing_cells() - 1))
             
             values["Мёрфи 1"] = (
                 values['Мёрфи 2']
-                /(1 + mass_transfer_factor()*bypass_fraction(loc='верха')*values["Мёрфи 2"]
-                /(1 - bypass_fraction(loc='верха'))))
+                /(1+mass_transfer_factor() * bypass_fraction(loc='верха') * values["Мёрфи 2"]
+                /(1-bypass_fraction(loc='верха'))))
             
             values['эффективность по Мёрфи'] = (
                 values["Мёрфи 1"]
-                /(1 + liquid_entrainment(loc='верха')*mass_transfer_factor()*values["Мёрфи 1"]
+                /(1+liquid_entrainment(loc='верха')*mass_transfer_factor()*values["Мёрфи 1"]
                 /(tg(x) * (1-bypass_fraction(loc='верха')))))
             
             values['значение кинетической кривой'] = get_kinetic_y(x, values['эффективность по Мёрфи'], loc='верха')
@@ -200,11 +200,11 @@ class Calculations():
         
         bubble_layer['коэффициент Фруда верха'] = (
             plate['скорость пара в рабочем сечении тарелки']
-            /(9.8 * bubble_layer['высота светлого слоя жидкости верха']))
+            /(9.8*bubble_layer['высота светлого слоя жидкости верха']))
         
         bubble_layer['коэффициент Фруда низа'] = (
             plate['скорость пара в рабочем сечении тарелки']
-            /(9.8 * bubble_layer['высота светлого слоя жидкости низа']))
+            /(9.8*bubble_layer['высота светлого слоя жидкости низа']))
         
         bubble_layer['паросодержание барботажного слоя верха'] = (
             np.sqrt(bubble_layer['коэффициент Фруда верха'])
@@ -219,6 +219,7 @@ class Calculations():
             
         u_a = Calculations.get_value(component= Substance['A'], attribute='vicosity_organic_liquid', temperature=20)
         u_b = Calculations.get_value(component= Substance['B'], attribute='vicosity_organic_liquid', temperature=20)
+        
         variables['вязкость жидкости верха при 20°С'] = (
             u_a*properties['содержание легколетучего в жидкости']['верха']
             +u_b*(1-properties['содержание легколетучего в жидкости']['верха']))
@@ -229,6 +230,7 @@ class Calculations():
         
         p_a = Calculations.get_value(component= Substance['A'], attribute='density_organic_liquid', temperature=20)
         p_b = Calculations.get_value(component= Substance['B'], attribute='density_organic_liquid', temperature=20)
+        
         variables['плотность жидкости верха при 20°С'] = (
             p_a*properties['содержание легколетучего в жидкости']['верха']
             +p_b*(1-properties['содержание легколетучего в жидкости']['верха']))
@@ -242,18 +244,16 @@ class Calculations():
             /(np.sqrt(variables['вязкость жидкости верха при 20°С'])
             *(properties['молярный объем жидкости']['дистиллята']**(1/3)
                 + properties['молярный объем жидкости']['куба']**(1/3))**2)
-            *np.sqrt(
-                1/properties['молярная масса жидкости']['дистиллята']
-                +1/properties['молярная масса жидкости']['куба']))
+            *np.sqrt(1/properties['молярная масса жидкости']['дистиллята']
+                     +1/properties['молярная масса жидкости']['куба']))
             
         bubble_layer['коэффициент диффузии жидкости низа при 20°С'] = (
             np.double([10**(-6)])
             /(np.sqrt(variables['вязкость жидкости низа при 20°С'])
             *(properties['молярный объем жидкости']['дистиллята']**(1/3)
                 +properties['молярный объем жидкости']['куба']**(1/3))**2)
-            *np.sqrt(
-                1/properties['молярная масса жидкости']['дистиллята']
-                +1/properties['молярная масса жидкости']['куба']))
+            *np.sqrt(1/properties['молярная масса жидкости']['дистиллята']
+                     +1/properties['молярная масса жидкости']['куба']))
         
         bubble_layer['температурный коэффициент верха'] = (
             0.2*np.sqrt(variables['вязкость жидкости верха при 20°С'])
@@ -279,18 +279,16 @@ class Calculations():
             *(np.double(273)+properties['температура']['верха'])**(3/2)
             /(PRESSURE*(properties['молярный объем жидкости']['дистиллята']**(1/3)
                         +properties['молярный объем жидкости']['куба']**(1/3))**2)
-            *np.sqrt(
-                1/properties['молярная масса жидкости']['дистиллята']
-                +1/properties['молярная масса жидкости']['куба']))
+            *np.sqrt(1/properties['молярная масса жидкости']['дистиллята']
+                     +1/properties['молярная масса жидкости']['куба']))
         
         bubble_layer['коэффициент диффузии пара низа'] = (
             np.double(4.22*10**(-2))
             *(np.double(273) + properties['температура']['низа'])**(3/2)
             /(PRESSURE * (properties['молярный объем жидкости']['дистиллята']**(1/3)
                         +properties['молярный объем жидкости']['куба']**(1/3))**2)
-            *np.sqrt(
-                1/properties['молярная масса жидкости']['дистиллята']
-                +1/properties['молярная масса жидкости']['куба']))
+            *np.sqrt(1/properties['молярная масса жидкости']['дистиллята']
+                     +1/properties['молярная масса жидкости']['куба']))
         
         #находим коэффициенты массоотдачи
         bubble_layer['коэффициент массоотдачи жидкости верха'] = (
@@ -524,10 +522,10 @@ class Calculations():
         
         def biuld_phlegm_lines(yf):
             _y = float(xw), float(yf)
-            RW_function = np.polyfit(_x,_y, 1)
+            bottom_work_line = np.polyfit(_x,_y, 1)
             y_ = float(yf), float(xp)
-            RP_function = np.polyfit(x_,y_, 1)
-            return RW_function, RP_function
+            top_work_line = np.polyfit(x_,y_, 1)
+            return bottom_work_line, top_work_line
 
         
         for yf in yf_:
@@ -535,15 +533,15 @@ class Calculations():
                 step.append(np.poly1d(xy_diagram)(xw))
                 
             while step[-1] <= yf:
-                RW, RP = biuld_phlegm_lines(yf)
-                RW[1] = RW[1] - step[-1]
-                platform.append(np.roots(RW))
+                bottom_work_line, top_work_line = biuld_phlegm_lines(yf)
+                bottom_work_line[1] = bottom_work_line[1] - step[-1]
+                platform.append(np.roots(bottom_work_line))
                 step.append(np.poly1d(xy_diagram)(platform[-1]))
                 
             while step[-1] <= xp:
-                RW, RP = biuld_phlegm_lines(yf)
-                RP[1] = RP[1] - step[-1]
-                platform.append(np.roots(RP))
+                bottom_work_line, top_work_line = biuld_phlegm_lines(yf)
+                top_work_line[1] = top_work_line[1] - step[-1]
+                platform.append(np.roots(top_work_line))
                 step.append(np.poly1d(xy_diagram)(platform[-1]))
                 
             if step[-1] > xp:            
