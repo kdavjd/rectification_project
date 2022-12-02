@@ -167,22 +167,32 @@ class Calculations():
         ):
         
         def get_heater_index(row):
-            
             i = (str(int(row[0]))
                     + ' ' + str(row[1] + np.double(0.004))
                     + ' ' + str(int(row[2]))
                     + ' ' + str(int(row[3])))
-                
             return i
-
+        
+        def get_evaporator_index(row):
+            i = (str(int(row['D кожуха, мм']))
+                    + ' ' + str(row['d труб, мм'] + np.double(0.004))
+                    + ' ' + str(int(row['Число ходов']))
+                    + ' ' + str(int(row['Общее число труб, шт'])))
+            return i
+        
         exclude_list = ['d труб, мм']
         heaters_table = dfc.delete_hyphens(heaters_table, exclude_list)
         
         pipes_names = ['1', '1.5', '2', '3', '4', '6', '9']
-            
-        heaters = pd.DataFrame(columns=pipes_names)
-
-        heaters['name'] = heaters_table.apply(get_heater_index, axis=1)
+        evaporator_pipes_names = [2,3,4,6]
+        
+        if EQ_NAME == 'испаритель':
+            heaters = pd.DataFrame(columns=evaporator_pipes_names)
+            heaters['name'] = heaters_table.apply(get_evaporator_index, axis=1)
+        else:
+            heaters = pd.DataFrame(columns=pipes_names)
+            heaters['name'] = heaters_table.apply(get_heater_index, axis=1)
+        
         
         if EQ_NAME == 'подогреватель' or EQ_NAME == 'дефлегматор':
             for name in pipes_names:
@@ -200,7 +210,7 @@ class Calculations():
                     AQ_PRESSURE = AQ_PRESSURE)
                 
         elif EQ_NAME == 'испаритель':
-            for name in pipes_names:
+            for name in evaporator_pipes_names:
                 heaters[name] = heaters_table.apply(Calculations.get_evaporator, axis = 1, args=(
                     name,
                     aqua_vapor_saturation_by_pressure, 
@@ -245,8 +255,8 @@ class Calculations():
         calc['диаметр кожуха'] = row['D кожуха, мм']
         calc['внутренний диаметр труб'] = row['d труб, мм']
         calc['внешний диаметр труб'] = row['d труб, мм'] + np.double(0.004)
-        calc['число ходов'] = row['Число ходов*']
-        calc['число труб'] = row['Общее число труб, шт.']
+        calc['число ходов'] = row['Число ходов']
+        calc['число труб'] = row['Общее число труб, шт']
         calc['длинна труб'] = np.double(name)
         if call == 'auto':
             calc['поверхность теплообмена'] = row[row.keys() == name]

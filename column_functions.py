@@ -1,6 +1,4 @@
 import pandas as pd
-
-
 pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
 from matplotlib import pyplot as plt
@@ -9,6 +7,89 @@ from data_functions import DataFunctions as dfc
 
 
 class Calculations():
+    
+    def get_plate_column_hight(Ropt, balance, kinetic_frame, diagram, diameter, plot_lines='True'):
+        kinematic_diagram=dfc.get_coeffs(
+            kinetic_frame['значение кинетической кривой'].index,
+            kinetic_frame['значение кинетической кривой'].values)
+
+        kinetic_xy = dfc.get_fit(
+            kinetic_frame['значение кинетической кривой'].index,
+            kinetic_frame['значение кинетической кривой'].values)
+        
+        diagram_xy = dfc.get_fit(diagram['x'], diagram['y'])
+        
+        yf = float(Ropt/(Ropt+1)*balance['xf']+balance['xp']/(Ropt+1))
+        xw = float(balance['xw'])
+        xf = float(balance['xf'])
+        xp = float(balance['xp'])
+        
+        _x = [xw, xf]
+        x_ = [xf, xp]
+        _y = [xw, yf]
+        y_ = [yf, xp]
+        
+        def biuld_phlegm_lines():
+                nonlocal _x
+                nonlocal _y
+                nonlocal x_
+                nonlocal y_
+                return np.polyfit(_x,_y, 1), np.polyfit(x_,y_, 1)
+        
+        step = []
+        step.append(np.poly1d(kinematic_diagram)(float(balance['xw'])))
+        platform = []
+
+        while step[-1] <= yf:
+            bottom_work_line, top_work_line = biuld_phlegm_lines()
+            bottom_work_line[1] = bottom_work_line[1] - step[-1]
+            platform.append(np.roots(bottom_work_line))
+            step.append(np.poly1d(kinematic_diagram)(platform[-1]))
+            
+        while step[-1] <= xp:
+            bottom_work_line, top_work_line = biuld_phlegm_lines()
+            top_work_line[1] = top_work_line[1] - step[-1]
+            platform.append(np.roots(top_work_line))
+            step.append(np.poly1d(kinematic_diagram)(platform[-1]))
+            
+        if step[-1] > xp:        
+            platform = [float(xw)] + platform 
+            outside_corners = list(zip(platform,step)) #Получаем координаты вершин внешних углов лестницы
+            platform = platform[1::]
+            inside_corners = list(zip(platform,step)) #Получаем координаты вершин внутренних углов лестницы
+            stair = list(zip(outside_corners,inside_corners)) 
+            sort_corners = []
+            for x,y in stair:
+                sort_corners.append(x)
+                sort_corners.append(y)
+            stair_line_x,stair_line_y = zip(*sort_corners) #Получаем значения ломаной линии по абсцисе и ординате
+            W_line = xw, yf
+            P_line = yf, xp
+            
+            if diameter['стандартный размер обечайки'] <= 1:
+                Zv = 0.6
+                Zn = 1.5
+            elif diameter['стандартный размер обечайки'] >= 2.4:
+                Zv = 1.4
+                Zn = 2.5
+            else:
+                Zv = 1
+                Zn = 2
+                
+        if plot_lines == 'True':
+            _ = [0, 1]
+            fig = plt.figure(figsize=(8,8))
+            axes = fig.add_subplot()    
+            axes.plot(stair_line_x,stair_line_y, 'o--', lw=1, ms=1)
+            axes.plot(_, _, color='black', lw=0.5)
+            axes.plot(kinetic_frame['значение кинетической кривой'].index, kinetic_xy, color='red', lw=1, ms=2)
+            axes.plot(diagram['x'], diagram_xy, 'o--', color='black', lw=0.5, ms=0.5)
+            axes.plot(_x, W_line, color='green', lw=1, ms=2)
+            axes.plot(x_, P_line, color='green', lw=1, ms=2)
+            axes.set_title(f"N = {len(step)} высота колонны = {((len(step) - 1)*0.5+Zv+Zn)}")
+
+        return pd.Series({'общее число действительных тарелок':len(step),
+                        'высота колонны':((len(step) - 1)*0.5+Zv+Zn)})
     
     def calculate_kinetic_slice(x, xy_diagram, plate_coeffs, balance, properties, plate, Ropt, diameter):
         
@@ -28,7 +109,7 @@ class Calculations():
             nonlocal plate 
             Fs = plate['скорость пара в рабочем сечении тарелки'] * properties['плотность пара'][loc]**0.5
             O = dfc.get_coeffs([1, 1.5, 2, 2.5, 3],
-                            [0.1, 0.1, 0.1, 0.15, 0.2])
+                               [0.1, 0.1, 0.1, 0.15, 0.2])
             return np.polyval(O, Fs)
         
         #подробно в [1] стр 241-242
@@ -298,8 +379,7 @@ class Calculations():
                 *(1-bubble_layer['паросодержание барботажного слоя верха'])))**0.5
             *bubble_layer['высота светлого слоя жидкости верха']
             *(properties['вязкость пара']['верха']
-            /(properties['вязкость жидкости']['верха'] + properties['вязкость пара']['верха']))**0.5
-            )
+            /(properties['вязкость жидкости']['верха'] + properties['вязкость пара']['верха']))**0.5)
         
         bubble_layer['коэффициент массоотдачи жидкости низа'] = (
             6.24*10**5 * bubble_layer['коэффициент диффузии жидкости низа']**0.5
@@ -308,8 +388,7 @@ class Calculations():
                 *(1-bubble_layer['паросодержание барботажного слоя низа'])))**0.5
             *bubble_layer['высота светлого слоя жидкости низа']
             *(properties['вязкость пара']['низа']
-            /(properties['вязкость жидкости']['низа'] + properties['вязкость пара']['низа']))**0.5
-            )
+            /(properties['вязкость жидкости']['низа'] + properties['вязкость пара']['низа']))**0.5)
             
         bubble_layer['коэффициент массоотдачи пара верха'] = (
             6.24*10**5 * bubble_layer['коэффициент диффузии пара верха']**0.5
@@ -603,78 +682,113 @@ class Calculations():
     
     def calculate_properties_slice(liquid_fraction, vapor_fraction, temperature, Substance, Ma, Mb, slice_type = 'DataFrame'):
         
-        thermal_conductivity_a = Calculations.get_value(component= Substance['A'], 
-                    attribute='thermal_conductivity_organic_liquid', temperature=temperature)
         #Теплопроводность компонента А [Вт/(м*K)]
+        thermal_conductivity_a = Calculations.get_value(
+            component= Substance['A'],
+            attribute='thermal_conductivity_organic_liquid', 
+            temperature=temperature)
         
-        thermal_conductivity_b = Calculations.get_value(component= Substance['B'],
-                    attribute='thermal_conductivity_organic_liquid', temperature=temperature)
         #Теплопроводность компонента Б  [Вт/(м*K)]
+        thermal_conductivity_b = Calculations.get_value(
+            component= Substance['B'],
+            attribute='thermal_conductivity_organic_liquid', 
+            temperature=temperature)
         
-        thermal_expansion_a = Calculations.get_value(component= Substance['A'],
-                    attribute='thermal_expansion_organic_liquid', temperature=temperature)
         #Коэффициенты объемного теплового расширения компонента А b*10^3, K^-1
+        thermal_expansion_a = Calculations.get_value(
+            component= Substance['A'],
+            attribute='thermal_expansion_organic_liquid', 
+            temperature=temperature)
         
-        thermal_expansion_b = Calculations.get_value(component= Substance['B'],
-                    attribute='thermal_expansion_organic_liquid', temperature=temperature)
         #Коэффициенты объемного теплового расширения компонента Б b*10^3, K^-1
+        thermal_expansion_b = Calculations.get_value(
+            component= Substance['B'],
+            attribute='thermal_expansion_organic_liquid', 
+            temperature=temperature)
         
-        vapor_pressure_a = Calculations.get_value(component= Substance['A'],
-                    attribute='vapor_pressure_organic_liquid', temperature=temperature)
         #Давление насыщенного пара [мм.рт.ст.] компонента А
+        vapor_pressure_a = Calculations.get_value(
+            component= Substance['A'],
+            attribute='vapor_pressure_organic_liquid', 
+            temperature=temperature)
         
-        vapor_pressure_b = Calculations.get_value(component= Substance['B'],
-                    attribute='vapor_pressure_organic_liquid', temperature=temperature)
         #Давление насыщенного пара [мм.рт.ст.] компонента Б
+        vapor_pressure_b = Calculations.get_value(
+            component= Substance['B'],
+            attribute='vapor_pressure_organic_liquid', 
+            temperature=temperature)
         
-        sigma_a = Calculations.get_value(component= Substance['A'],
-                    attribute='interfactial_tension_organic_liquid', temperature=temperature)
         #Поверхностное натяжение [мДж/м^2] компонента А
+        sigma_a = Calculations.get_value(
+            component= Substance['A'],
+            attribute='interfactial_tension_organic_liquid', 
+            temperature=temperature)
         
-        sigma_b = Calculations.get_value(component= Substance['B'],
-                    attribute='interfactial_tension_organic_liquid', temperature=temperature)
-        #Поверхностное натяжение [мДж/м^2] компонента Б 
-        
-        Cp_a = Calculations.get_value(component= Substance['A'],
-                    attribute='heat_capacity_organic_liquid', temperature=temperature)
+        #Поверхностное натяжение [мДж/м^2] компонента Б
+        sigma_b = Calculations.get_value(
+            component= Substance['B'],
+            attribute='interfactial_tension_organic_liquid', 
+            temperature=temperature)
+         
         #Удельная теплоемкость [Дж/(кг*K)] компонента А
+        Cp_a = Calculations.get_value(
+            component= Substance['A'],
+            attribute='heat_capacity_organic_liquid', 
+            temperature=temperature)
         
-        Cp_b = Calculations.get_value(component= Substance['B'],
-                    attribute='heat_capacity_organic_liquid', temperature=temperature)
         #Удельная теплоемкость [Дж/(кг*K)] компонента Б
+        Cp_b = Calculations.get_value(
+            component= Substance['B'],
+            attribute='heat_capacity_organic_liquid', 
+            temperature=temperature)
         
-        Qv_a = Calculations.get_value(component= Substance['A'],
-                    attribute='heat_vaporization_organic_liquid', temperature=temperature)
         #Теплота парообразования компонента А [кДж/кг]
+        Qv_a = Calculations.get_value(
+            component= Substance['A'],
+            attribute='heat_vaporization_organic_liquid', 
+            temperature=temperature)
         
-        Qv_b = Calculations.get_value(component= Substance['B'],
-                    attribute='heat_vaporization_organic_liquid', temperature=temperature)
         #Теплота парообразования компонента Б [кДж/кг]
+        Qv_b = Calculations.get_value(
+            component= Substance['B'],
+            attribute='heat_vaporization_organic_liquid', 
+            temperature=temperature)
         
-        p_a = Calculations.get_value(component= Substance['A'],
-                    attribute='density_organic_liquid', temperature=temperature)
         #Плотность [кг/м^3] компонента А
+        p_a = Calculations.get_value(
+            component= Substance['A'],
+            attribute='density_organic_liquid', 
+            temperature=temperature)
         
-        p_b = Calculations.get_value(component= Substance['B'],
-                    attribute='density_organic_liquid', temperature=temperature)
-        #Плотность [кг/м^3] компонента Б 
-        
-        u_a = Calculations.get_value(component= Substance['A'],
-                    attribute='vicosity_organic_liquid', temperature=temperature) 
-        #Динамическая вязкость [мПа*с] компонента А 
-        
-        u_b = Calculations.get_value(component= Substance['B'],
-                    attribute='vicosity_organic_liquid', temperature=temperature)
+        #Плотность [кг/м^3] компонента Б
+        p_b = Calculations.get_value(
+            component= Substance['B'],
+            attribute='density_organic_liquid', 
+            temperature=temperature)
+         
+        #Динамическая вязкость [мПа*с] компонента А
+        u_a = Calculations.get_value(
+            component= Substance['A'],
+            attribute='vicosity_organic_liquid', 
+            temperature=temperature) 
+         
         #Динамическая вязкость [мПа*с] компонента Б 
+        u_b = Calculations.get_value(
+            component= Substance['B'],
+            attribute='vicosity_organic_liquid', 
+            temperature=temperature)
         
-        ug_a = Calculations.get_value(component= Substance['A'],
-                    attribute='vicosity_organic_vapor', temperature=temperature)
         #Вязкость паров [мкПа*с] компонента А 
+        ug_a = Calculations.get_value(
+            component= Substance['A'],
+            attribute='vicosity_organic_vapor', 
+            temperature=temperature)
         
-        ug_b = Calculations.get_value(component= Substance['B'],
-                    attribute='vicosity_organic_vapor', temperature=temperature)
-        #Вязкость паров [мкПа*с] компонента Б 
-
+        #Вязкость паров [мкПа*с] компонента Б
+        ug_b = Calculations.get_value(
+            component= Substance['B'],
+            attribute='vicosity_organic_vapor', 
+            temperature=temperature)
 
         def calculate_mixture_value(a,b,fraction):
             value = fraction*a + (1-fraction)*b
@@ -741,11 +855,11 @@ class Calculations():
         P_line = float(yf), float(balance['xp'])
 
         def biuld_phlegm_lines(yf):        
-                _y = float(balance['xw']), float(yf)
-                RW_function = np.polyfit(_x,_y, 1)        
-                y_ = float(yf), float(balance['xp'])
-                RP_function = np.polyfit(x_,y_, 1)
-                return RW_function, RP_function
+            _y = float(balance['xw']), float(yf)
+            RW_function = np.polyfit(_x,_y, 1)        
+            y_ = float(yf), float(balance['xp'])
+            RP_function = np.polyfit(x_,y_, 1)
+            return RW_function, RP_function
 
         #Находим все функции для графиков
         w, p = biuld_phlegm_lines(yf)
@@ -794,10 +908,14 @@ class Calculations():
             axes[1].plot(_, _, color='black', lw=0.5)
             axes[1].plot(_x, W_line, color='black', lw=1, ms=2)
             axes[1].plot(x_, P_line, color='black', lw=1, ms=2)
-            axes[1].fill_between(w_x, fxy(w_x), fxyw(w_x),  where=[(w_x >= float(balance['xw'])) and (w_x <= float(balance['xf'])) for w_x in w_x],
-                            color = 'blue', alpha = 0.4)
-            axes[1].fill_between(p_x, fxy(p_x), fxyp(p_x), where=[(p_x >= float(balance['xf'])) and (p_x <= float(balance['xp'])) for p_x in p_x],
-                            color = 'green', alpha = 0.4)
+            axes[1].fill_between(
+                w_x, fxy(w_x), fxyw(w_x),  
+                where=[(w_x >= float(balance['xw'])) and (w_x <= float(balance['xf'])) for w_x in w_x],
+                color = 'blue', alpha = 0.4)
+            axes[1].fill_between(
+                p_x, fxy(p_x), fxyp(p_x), 
+                where=[(p_x >= float(balance['xf'])) and (p_x <= float(balance['xp'])) for p_x in p_x],
+                color = 'green', alpha = 0.4)
             axes[1].set_ylabel(f'Мольная доля ллт в паре', fontsize=10)
             axes[1].set_xlabel(f'Мольная доля ллт в жидкости', fontsize=10)
         return bottom, top
@@ -968,18 +1086,16 @@ class Calculations():
             /(np.sqrt(variables['вязкость жидкости верха при 20°С'])
             *(properties['молярный объем жидкости']['дистиллята']**(1/3)
               +properties['молярный объем жидкости']['куба']**(1/3))**2)
-            *np.sqrt(
-                1/properties['молярная масса жидкости']['дистиллята']
-                +1/properties['молярная масса жидкости']['куба']))
+            *np.sqrt(1/properties['молярная масса жидкости']['дистиллята']
+                     +1/properties['молярная масса жидкости']['куба']))
         
         hight['коэффициент диффузии жидкости низа при 20°С'] = (
             np.double([10**(-6)])
             /(np.sqrt(variables['вязкость жидкости низа при 20°С'])
             *(properties['молярный объем жидкости']['дистиллята']**(1/3)
               +properties['молярный объем жидкости']['куба']**(1/3))**2)
-            *np.sqrt(
-                1/properties['молярная масса жидкости']['дистиллята']
-                +1/properties['молярная масса жидкости']['куба']))
+            *np.sqrt(1/properties['молярная масса жидкости']['дистиллята']
+                     +1/properties['молярная масса жидкости']['куба']))
         
         hight['температурный коэффициент верха'] = (
             0.2*np.sqrt(variables['вязкость жидкости верха при 20°С'])
@@ -1006,18 +1122,16 @@ class Calculations():
               +properties['температура']['верха'])**(3/2)
             /(PRESSURE*(properties['молярный объем жидкости']['дистиллята']**(1/3)
                         +properties['молярный объем жидкости']['куба']**(1/3))**2)
-            *np.sqrt(
-                1/properties['молярная масса жидкости']['дистиллята']
-                +1/properties['молярная масса жидкости']['куба']))
+            *np.sqrt(1/properties['молярная масса жидкости']['дистиллята']
+                     +1/properties['молярная масса жидкости']['куба']))
         
         hight['коэффициент диффузии пара низа'] = (
             (np.double(4.22*10**(-2))
              *(np.double(273)+properties['температура']['низа'])**(3/2)
             /(PRESSURE*(properties['молярный объем жидкости']['дистиллята']**(1/3)
                         +properties['молярный объем жидкости']['куба']**(1/3))**2)
-            *np.sqrt(
-                1/properties['молярная масса жидкости']['дистиллята']
-                +1/properties['молярная масса жидкости']['куба'])))
+            *np.sqrt(1/properties['молярная масса жидкости']['дистиллята']
+                     +1/properties['молярная масса жидкости']['куба'])))
         
         hight['средний коэффициент распределения верха'] = get_m(x_top).mean()
         hight['средний коэффициент распределения низа'] = get_m(x_bottom).mean()
