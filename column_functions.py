@@ -2,6 +2,8 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
 from matplotlib import pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from scipy import integrate
 from data_functions import DataFunctions as dfc
 
@@ -655,7 +657,6 @@ class Calculations():
     def get_optimal_phlegm_number(R,Ngraf, plot_lines = "True"):
         """Оптимальное флегмовое число "Ropt" находят по минимуму функции R от N(R+1).
         
-
         Args:
             R: Массив с набором рабочих флегмовых чисел
             Ngraf: Массив с набором чисел ступеней разделения
@@ -1264,3 +1265,159 @@ class Calculations():
             -thermal_balance['теплота исходной смеси'])
         
         return thermal_balance
+
+class Figures():
+    
+    def plot_xy_diagram(diagram, A_name, plot_type='plotly'):
+        """Возвращает фигуру из двух графиков ху_т и х_у диаграмм
+
+        Args:
+            diagram (pd.Dataframe): таблица с данными равновесия
+            A_name (any): название легколетучего компонента для подписи осей
+            plot_type (str, optional): может быть и 'matplotlib'. Defaults to 'plotly'.
+
+        Returns:
+            _type_: фигура из двух графиков
+        """
+    
+        if plot_type=='plotly':
+            fig = make_subplots(rows=1, cols=2)
+
+            fig.add_trace(go.Scatter(x=diagram['x'], y=diagram['t'],
+                                    line=dict(
+                                        color='rgb(0, 77, 153)',
+                                        width=3),
+                                    mode='lines+markers',
+                                    name='жидкая фаза',
+                                    ), row=1, col=1)
+            fig.add_trace(go.Scatter(x=diagram['y'], y=diagram['t'],
+                                    line=dict(
+                                        color='rgb(41, 163, 41)',
+                                        width=3),
+                                    mode='lines+markers',
+                                    name='паровая фаза'
+                                    ), row=1, col=1)
+
+            p_x = dfc.get_fit(diagram['x'], diagram['t'])
+            p_y = dfc.get_fit(diagram['y'], diagram['t'])
+            fig.add_trace(go.Scatter(x=diagram['x'], y=p_x,
+                                    line=dict(
+                                        color='red',
+                                        width=0.7),
+                                    mode='lines',
+                                    name='аппроксимация жидкой фазы',
+                                    ), row=1, col=1)
+            fig.add_trace(go.Scatter(x=diagram['y'], y=p_y,
+                                    line=dict(
+                                        color='blue',
+                                        width=0.7),
+                                    mode='lines',
+                                    name='аппроксимация паровой фазы',
+                                    ), row=1, col=1)
+
+            #x-y диаграмма
+            fig.add_trace(go.Scatter(x=diagram['x'], y=diagram['y'],
+                                    line=dict(
+                                        color='rgb(0, 77, 153)',
+                                        width=2),
+                                    mode='lines+markers',
+                                    name='x-y диаграмма'
+                                    ), row=1, col=2)
+
+            x_y = dfc.get_fit(diagram['x'], diagram['y'])
+            fig.add_trace(go.Scatter(x=diagram['x'], y=x_y,
+                                    line=dict(
+                                        color='red',
+                                        width=0.7),
+                                    mode='lines',
+                                    name='аппроксимация x-y диаграммы',
+                                    ), row=1, col=2)
+
+            _ = [0, 1]
+            fig.add_trace(go.Scatter(x=_, y=_,
+                                    line=dict(
+                                        color='grey',
+                                        width=1),
+                                    mode='lines+markers',
+                                    name='линия нулевого разделения'
+                                    ), row=1, col=2)
+
+            #настраиваем график внутри
+            fig.update_xaxes(title_text= f'мольная доля {A_name}', 
+                            row=1, col=1,
+                            gridcolor='rgb(105,105,105)',
+                            griddash='1px',
+                            zeroline=False)
+            fig.update_xaxes(title_text= f'мольная доля {A_name} в жидкости', 
+                            row=1, col=2,
+                            gridcolor='rgb(105,105,105)',
+                            griddash='1px',
+                            zeroline=False)
+            fig.update_yaxes(title_text="температура, °C", 
+                            row=1, col=1,
+                            gridcolor='rgb(105,105,105)',
+                            griddash='1px',
+                            zeroline=False)
+            fig.update_yaxes(title_text=f'мольная доля {A_name} в паре', 
+                            row=1, col=2,
+                            gridcolor='rgb(105,105,105)',
+                            griddash='1px',
+                            zeroline=False)
+
+            #настраиваем график снаружи и на границах
+            indent = diagram['t'].max()/75
+            fig.update_xaxes(range=[-0.05, 1.05],
+                            row=1, col=1,
+                            showline=True, linewidth=2, linecolor='black',
+                            mirror=True,
+                            ticks='inside')
+            fig.update_xaxes(range=[-0.05, 1.05],
+                            row=1, col=2,
+                            showline=True, linewidth=2, linecolor='black',
+                            mirror=True,
+                            ticks='inside')
+            fig.update_yaxes(range=[diagram['t'].min()-indent, diagram['t'].max()+indent], 
+                            row=1, col=1,
+                            showline=True, linewidth=2, linecolor='black',
+                            mirror=True,
+                            ticks='inside')
+            fig.update_yaxes(range=[-0.05, 1.05], 
+                            row=1, col=2,
+                            showline=True, linewidth=2, linecolor='black',
+                            mirror=True,
+                            ticks='inside')
+            fig.update_layout(
+                autosize=False,
+                width=1000,
+                height=500,
+                margin=dict(l=20, r=5, t=20, b=2),
+                showlegend=False,
+                plot_bgcolor='white')
+                    
+        if plot_type=='matplotlib':
+            plt.style.use(['science', 'no-latex', 'notebook', 'grid'])
+
+            fig = plt.figure(figsize=(20,10))
+            axes = fig.add_subplot(1,2,1)
+            axes2 = fig.add_subplot(1,2,2)
+
+            axes.plot(diagram['x'], diagram['t'], label='состав жидкости')
+            axes.plot(diagram['y'], diagram['t'], label='состав пара')
+            axes.set_ylabel('Температура, °С', fontsize=15)
+            axes.set_xlabel(f'Мольная доля {A_name}', fontsize=15)
+
+            p_x = dfc.get_fit(diagram['x'], diagram['t'])
+            p_y = dfc.get_fit(diagram['y'], diagram['t'])
+            axes.plot(diagram['x'], p_x, 'o--', color='red', lw=0.5, ms=2)
+            axes.plot(diagram['y'], p_y, 'o--', color='blue', lw=0.5, ms=2)
+            axes.legend(loc='upper right')
+
+            axes2.plot(diagram['x'], diagram['y'])
+            x_y = dfc.get_fit(diagram['x'], diagram['y'])
+            axes2.plot(diagram['x'], x_y, 'o--', color='red', lw=1, ms=2)
+            _ = [0, 1]
+            axes2.plot(_, _, color='black', lw=0.5)
+            axes2.set_ylabel(f'Мольная доля {A_name} в паре', fontsize=15)
+            axes2.set_xlabel(f'Мольная доля {A_name} в жидкости', fontsize=15)
+        
+        return fig
