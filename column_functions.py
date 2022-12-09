@@ -565,7 +565,8 @@ class Calculations():
         
         return value
     
-    def get_range_phlegm_number(yf, xw, xf, xp, Rmin, xy_diagram, diagram, Bt_range: int, plot_lines = 'True'):
+    
+    def get_range_phlegm_number(yf, xw, xf, xp, Rmin, xy_diagram, diagram, Bt_range: int, plot_type = 'matplotlib'):
         """Для поиска оптимального флегмового числа "Ropt" необходимо задаться "Bt_range", умножив "Rmin"
         на который, получают точку рабочего флегмового числа -"R". Для всех "R" находится новая "yf" и строится 
         линия рабочего флегмового числа по коодинатам (xw,yw)-(xf,yf) и (xf,yf)-(xp,yp).
@@ -580,13 +581,15 @@ class Calculations():
             xy_diagram: Уравнение полинома диаграмы равновесия по абсциссе жидкость по ординате пар
             diagram: Таблица с данными жидкость/пар/температура для данной смеси
             Bt_range (int): Количество точек коэфициента избытка флегмы, которым задается функция при поиске Ropt
-            plot_lines (str, optional): Нужно ли строить графики или просто делать рсчет. Defaults to 'True'.
+            plot_lines (str, optional): Нужно ли строить графики или просто делать рсчет. Defaults to 'matplotlib'.
 
         Returns:
             R: Массив с набором рабочих флегмовых чисел
             Ngraf: Массив с набором чисел ступеней разделения
-        """
-        
+            fig: если выбран plot_type 'plotly'
+            """
+        if Bt_range > 50:
+            Bt_range = 50
         _ = [0, 1]
         _x = float(xw), float(xf)
         x_ = float(xf), float(xp)
@@ -597,9 +600,26 @@ class Calculations():
         step = []
         platform = []
         N = pd.Series(dtype=float)
-        if plot_lines == 'True':
+        
+        if plot_type == 'matplotlib':
             fig = plt.figure(figsize=(15,45))
-        i = 1
+            plt.style.use(['science', 'no-latex', 'notebook', 'grid'])
+            SMALL_SIZE = 6
+            MEDIUM_SIZE = 10
+            BIGGER_SIZE = 12
+            plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+            plt.rc('axes', titlesize=MEDIUM_SIZE)    # fontsize of the axes title
+            plt.rc('axes', labelsize=SMALL_SIZE)     # fontsize of the x and y labels
+            plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+            plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+            plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+            plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+            
+        elif plot_type == 'plotly':
+            fig = make_subplots(rows=int(np.ceil(Bt_range/5)), cols=5)#в одном ряду будет 5 графиков
+        else:
+            pass
+            
         
         def biuld_phlegm_lines(yf):
             _y = float(xw), float(yf)
@@ -608,7 +628,7 @@ class Calculations():
             top_work_line = np.polyfit(x_,y_, 1)
             return bottom_work_line, top_work_line
 
-        
+        i = 1
         for yf in yf_:
             if len(step) == 0:
                 step.append(np.poly1d(xy_diagram)(xw))
@@ -625,8 +645,8 @@ class Calculations():
                 platform.append(np.roots(top_work_line))
                 step.append(np.poly1d(xy_diagram)(platform[-1]))
                 
-            if step[-1] > xp:            
-                N[yf] = len(step) #Считаем кол-во ступеней            
+            if step[-1] > xp:
+                N[yf] = len(step) #Считаем кол-во ступеней
                 platform = [xw] + platform 
                 outside_corners = list(zip(platform,step)) #Получаем координаты вершин внешних углов лестницы
                 platform = platform[1::]
@@ -640,18 +660,25 @@ class Calculations():
                 W_line = float(xw), float(yf)
                 P_line = float(yf), float(xp)
                 
-                if plot_lines == 'True':                    
-                    axes = fig.add_subplot(10,5,i)
-                    axes.plot(stair_line_x,stair_line_y, 'o--', lw=1, ms=1)
-                    axes.plot(_, _, color='black', lw=0.5)
-                    axes.plot(diagram['x'], x_y, color='red', lw=1, ms=2)
-                    axes.plot(_x, W_line, color='green', lw=1, ms=2)
-                    axes.plot(x_, P_line, color='green', lw=1, ms=2)
-                    axes.set_title(f"N = {N[yf]}, R = {round(R[i-1],2)}, Yf = {round(yf,2)}")     
-                step = []            
+                if plot_type == 'matplotlib' or plot_type == 'plotly':
+                    fig = Figures.plot_range_phlegm_number(fig, i, diagram, stair_line_x, stair_line_y, x_y, _x, x_,
+                                                           W_line, P_line, N, yf, R, plot_type)
+                else:
+                    pass
+                step = []
                 platform = []
                 i += 1
-        Ngraf = N.values *(R+1)       
+        Ngraf = N.values *(R+1)
+        
+        if plot_type == 'plotly':
+            fig.update_layout(
+                    autosize=False,
+                    width=1000,
+                    height=300*int(np.ceil(Bt_range/5)),
+                    margin=dict(l=20, r=5, t=20, b=2),
+                    showlegend=False,
+                    plot_bgcolor='white')
+            return fig, R, Ngraf
         return R,Ngraf
     
     def get_optimal_phlegm_number(R,Ngraf, plot_lines = "True"):
@@ -1419,5 +1446,105 @@ class Figures():
             axes2.plot(_, _, color='black', lw=0.5)
             axes2.set_ylabel(f'Мольная доля {A_name} в паре', fontsize=15)
             axes2.set_xlabel(f'Мольная доля {A_name} в жидкости', fontsize=15)
+        
+        return fig
+    
+    def plot_range_phlegm_number(fig, i, diagram, stair_line_x, stair_line_y, x_y, _x, x_, W_line, P_line, N, yf, R, plot_type):
+        """функция вызывается из 'range_phlegm_number' и в зависимости от выбранного 'plot_type' строит фигуру либо 
+        из библиотеки matplotlib либо из plotly
+        
+        """ 
+        
+        _ = [0, 1]
+        if plot_type == 'matplotlib':
+            
+            axes = fig.add_subplot(10,5,i)
+            axes.plot(stair_line_x,stair_line_y, 'o--', lw=1, ms=1)
+            axes.plot(_, _, color='black', lw=0.5)
+            axes.plot(diagram['x'], x_y, color='red', lw=1, ms=2)
+            axes.plot(_x, W_line, color='green', lw=1, ms=2)
+            axes.plot(x_, P_line, color='green', lw=1, ms=2)
+            axes.set_title(f"N = {N[yf]}, R = {round(R[i-1],2)}, Yf = {round(yf,2)}")
+        
+        if plot_type == 'plotly':
+            
+            row = int(np.ceil(i/5))
+            f = lambda y: y%5 if y%5 != 0 else 5
+            col = f(i)
+                    
+            fig.add_annotation(xref="x domain",yref="y domain",x=0, y=1.1, showarrow=False,
+                    text=f"N = {N[yf]}, R = {round(R[i-1],2)}, Yf = {round(yf,2)}",
+                    row=row, col=col)
+            
+            fig.add_trace(go.Scatter(x=diagram['x'], y=diagram['y'],
+                                    line=dict(
+                                        color='rgb(0, 77, 153)',
+                                        width=2),
+                                    mode='lines',
+                                    name='x-y диаграмма'
+                                    ), row=row, col=col)
+            
+            fig.add_trace(go.Scatter(x=diagram['x'], y=x_y,
+                                    line=dict(
+                                        color='red',
+                                        width=0.5),
+                                    mode='lines',
+                                    name='аппроксимация x-y диаграммы'
+                                    ), row=row, col=col)
+            
+            fig.add_trace(go.Scatter(x=list(*np.array(stair_line_x).T), y=list(*np.array(stair_line_y).T),
+                                    line=dict(
+                                        color='red',
+                                        width=1),
+                                    mode='lines',
+                                    name='ступени изменения концентраций'
+                                    ), row=row, col=col)
+            
+            fig.add_trace(go.Scatter(x=_x, y=W_line,
+                                    line=dict(
+                                        color='black',
+                                        width=1),
+                                    mode='lines',
+                                    name='исчерпывающая рабочая линия'
+                                    ), row=row, col=col)
+            
+            fig.add_trace(go.Scatter(x=x_, y=P_line,
+                                    line=dict(
+                                        color='black',
+                                        width=1),
+                                    mode='lines',
+                                    name='укрепляющая рабочая линия'
+                                    ), row=row, col=col)
+            
+            fig.add_trace(go.Scatter(x=_, y=_,
+                                    line=dict(
+                                        color='grey',
+                                        width=1),
+                                    mode='lines',
+                                    name='линия нулевого разделения'
+                                    ), row=row, col=col)
+            
+            #настраиваем график снаружи и на границах
+            fig.update_xaxes(range=[-0.05, 1.05],
+                                row=row, col=col,
+                                showline=True, linewidth=2, linecolor='black',
+                                mirror=True,
+                                ticks='inside')
+            fig.update_yaxes(range=[-0.05, 1.05], 
+                                row=row, col=col,
+                                showline=True, linewidth=2, linecolor='black',
+                                mirror=True,
+                                ticks='inside')
+            
+            #настраиваем график внутри
+            fig.update_xaxes(row=row, col=col,
+                                gridcolor='rgb(105,105,105)',
+                                griddash='1px',
+                                zeroline=False)
+            
+            fig.update_yaxes(row=row, col=col,
+                                gridcolor='rgb(105,105,105)',
+                                griddash='1px',
+                                zeroline=False)
         
         return fig
