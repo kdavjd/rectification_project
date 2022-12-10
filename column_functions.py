@@ -681,7 +681,34 @@ class Calculations():
             return fig, R, Ngraf
         return R,Ngraf
     
-    def get_optimal_phlegm_number(R,Ngraf, plot_lines = "True"):
+    # def get_optimal_phlegm_number(R,Ngraf, plot_lines = "True"):
+    #     """Оптимальное флегмовое число "Ropt" находят по минимуму функции R от N(R+1).
+        
+    #     Args:
+    #         R: Массив с набором рабочих флегмовых чисел
+    #         Ngraf: Массив с набором чисел ступеней разделения
+    #         plot_lines (str, optional):нужно ли строить графики или просто проводить расчет. Defaults to "True".
+
+    #     Returns:
+    #         Ropt: Оптимальное флегмовое число
+    #     """
+    #     Nfit = dfc.get_fit(R,Ngraf)
+    #     optimal = []
+    #     for value in Nfit:
+    #         optimal.append(value == Nfit.min())
+    #     Ropt = np.round(R[optimal],2)
+    #     if plot_lines == 'True':
+    #         fig = plt.figure(figsize=(7,7))
+    #         axes = fig.add_subplot()
+    #         axes.plot(R,Ngraf)
+    #         axes.plot(R,Nfit, '--')
+    #         axes.set_xlabel(r'R')
+    #         axes.set_ylabel(r'N(R+1)')
+    #         axes.set_title(f"Оптимальное флегмовое число = {np.round(R[optimal],2)}") 
+    #         print(f"Оптимальное флегмовое число = {np.round(R[optimal],2)}")
+    #     return Ropt
+    
+    def get_optimal_phlegm_number(R,Ngraf, plot_type = "matplotlib"):
         """Оптимальное флегмовое число "Ropt" находят по минимуму функции R от N(R+1).
         
         Args:
@@ -691,21 +718,20 @@ class Calculations():
 
         Returns:
             Ropt: Оптимальное флегмовое число
+            fig: Если выбран 'plot_type' plotly
         """
         Nfit = dfc.get_fit(R,Ngraf)
         optimal = []
         for value in Nfit:
             optimal.append(value == Nfit.min())
         Ropt = np.round(R[optimal],2)
-        if plot_lines == 'True':
-            fig = plt.figure(figsize=(7,7))
-            axes = fig.add_subplot()
-            axes.plot(R,Ngraf)
-            axes.plot(R,Nfit, '--')
-            axes.set_xlabel(r'R')
-            axes.set_ylabel(r'N(R+1)')
-            axes.set_title(f"Оптимальное флегмовое число = {np.round(R[optimal],2)}") 
-            print(f"Оптимальное флегмовое число = {np.round(R[optimal],2)}")
+        
+        if plot_type == 'matplotlib' or plot_type == 'plotly':
+            fig = Figures.plot_optimal_phlegm_number(R, Ngraf, Nfit, optimal, Ropt, plot_type)
+            
+        if plot_type == 'plotly':
+            return fig, Ropt
+        
         return Ropt
     
     def calculate_properties_slice(liquid_fraction, vapor_fraction, temperature, Substance, Ma, Mb, slice_type = 'DataFrame'):
@@ -1548,3 +1574,67 @@ class Figures():
                                 zeroline=False)
         
         return fig
+    def plot_optimal_phlegm_number(R, Ngraf, Nfit, optimal, Ropt, plot_type):
+    
+        if plot_type == 'matplotlib':
+            plt.style.use(['science', 'no-latex', 'notebook', 'grid'])
+            fig = plt.figure(figsize=(7,7))
+            axes = fig.add_subplot()
+            axes.plot(R,Ngraf)
+            axes.plot(R,Nfit, '--')
+            axes.set_xlabel(r'R')
+            axes.set_ylabel(r'N(R+1)')
+            axes.set_title(f"Оптимальное флегмовое число = {np.round(R[optimal],2)}") 
+            
+        if plot_type == 'plotly':
+            fig = go.Figure()
+            
+            fig.add_trace(go.Scatter(x=R, y=Nfit,
+                                    line=dict(
+                                        color='red',
+                                        width=2),
+                                    mode='lines',
+                                    name='аппроксимация'))
+            
+            fig.add_trace(go.Scatter(x=R, y=Ngraf,
+                                    line=dict(
+                                        color='black',
+                                        width=2),
+                                    mode='lines',
+                                    name='значения рабочего флегмового числа'))
+            
+            fig.add_annotation(x=float(R[optimal]), y=float(Nfit.min()),
+                text=f"R оптимальное={Ropt}", 
+                showarrow=True,
+                arrowhead=1)
+            
+            #настраиваем график
+            fig.update_xaxes(
+                title_text= 'R',
+                gridcolor='rgb(105,105,105)',
+                griddash='1px',
+                showline=True, linewidth=2, linecolor='black',
+                mirror=True,
+                ticks='inside',
+                zeroline=False)
+            
+            fig.update_yaxes(
+                title_text="N(R+1)",
+                gridcolor='rgb(105,105,105)',
+                griddash='1px',
+                showline=True, linewidth=2, linecolor='black',
+                mirror=True,
+                ticks='inside',
+                zeroline=False)
+            
+            fig.update_layout(
+                    autosize=False,
+                    width=500,
+                    height=500,
+                    margin=dict(l=20, r=5, t=20, b=2),
+                    showlegend=False,
+                    plot_bgcolor='white')
+            
+            return fig
+        
+        return 
