@@ -681,33 +681,6 @@ class Calculations():
             return fig, R, Ngraf
         return R,Ngraf
     
-    # def get_optimal_phlegm_number(R,Ngraf, plot_lines = "True"):
-    #     """Оптимальное флегмовое число "Ropt" находят по минимуму функции R от N(R+1).
-        
-    #     Args:
-    #         R: Массив с набором рабочих флегмовых чисел
-    #         Ngraf: Массив с набором чисел ступеней разделения
-    #         plot_lines (str, optional):нужно ли строить графики или просто проводить расчет. Defaults to "True".
-
-    #     Returns:
-    #         Ropt: Оптимальное флегмовое число
-    #     """
-    #     Nfit = dfc.get_fit(R,Ngraf)
-    #     optimal = []
-    #     for value in Nfit:
-    #         optimal.append(value == Nfit.min())
-    #     Ropt = np.round(R[optimal],2)
-    #     if plot_lines == 'True':
-    #         fig = plt.figure(figsize=(7,7))
-    #         axes = fig.add_subplot()
-    #         axes.plot(R,Ngraf)
-    #         axes.plot(R,Nfit, '--')
-    #         axes.set_xlabel(r'R')
-    #         axes.set_ylabel(r'N(R+1)')
-    #         axes.set_title(f"Оптимальное флегмовое число = {np.round(R[optimal],2)}") 
-    #         print(f"Оптимальное флегмовое число = {np.round(R[optimal],2)}")
-    #     return Ropt
-    
     def get_optimal_phlegm_number(R,Ngraf, plot_type = "matplotlib"):
         """Оптимальное флегмовое число "Ropt" находят по минимуму функции R от N(R+1).
         
@@ -899,8 +872,8 @@ class Calculations():
         properties.index = ['куба', 'низа','питания','верха','дистиллята']
         return properties
     
-    def get_transfer_numbers(balance, Ropt, xy_diagram, plot_lines = 'True'):
-        
+    def get_transfer_numbers(balance, Ropt, xy_diagram, plot_type = 'matplotlib'):
+    
         #Готовим значения функций для графиков
         yf = Ropt/(Ropt+1)*balance['xf']+balance['xp']/(Ropt+1)
         _x = float(balance['xw']), float(balance['xf'])
@@ -936,24 +909,36 @@ class Calculations():
         
         bottom_function = dfc.get_coeffs(bottom_values,fw(w_x))
         distillate_function = dfc.get_coeffs(distillate_values,fp(p_x)) 
-         
+            
         def fbottom(x): return np.poly1d(bottom_function)(x)
         def fdistillate(x): return np.poly1d(distillate_function)(x)
         
         bottom = round(integrate.quad(fbottom, bottom_values[0],bottom_values[-1])[0],2)
         top = round(integrate.quad(fdistillate, distillate_values[0],distillate_values[-1])[0],2)
 
-        if plot_lines == 'True':
+        _ = [0, 1]
+        if plot_type == 'matplotlib':
             #Строим графики
+            SMALL_SIZE = 6
+            MEDIUM_SIZE = 10
+            BIGGER_SIZE = 12
+            plt.style.use(['science', 'no-latex', 'notebook', 'grid'])
+            plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+            plt.rc('axes', titlesize=MEDIUM_SIZE)    # fontsize of the axes title
+            plt.rc('axes', labelsize=MEDIUM_SIZE)     # fontsize of the x and y labels
+            plt.rc('xtick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+            plt.rc('ytick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+            plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
+            plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
             fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12,5))
-            _ = [0, 1]
+            
             axes[0].plot(wi_x, fw(w_x), label = (r'$\int {низ}$= ' + f'{bottom}'))
             axes[0].fill_between(wi_x, fw(w_x), where=[(w_x >= float(balance['xw'])) and (w_x <= float(balance['xf'])) for w_x in w_x],
                             color = 'blue', alpha = 0.4)
             axes[0].plot(pi_x, fp(p_x), label = (r'$\int {верх}$= ' + f'{top}'))
             axes[0].fill_between(pi_x, fp(p_x), where=[(p_x >= float(balance['xf'])) and (p_x <= float(balance['xp'])) for p_x in p_x],
                             color = 'green', alpha = 0.4)
-            axes[0].set_ylabel(r'$ \frac {1}{y* - y}$',  fontsize=15)
+            axes[0].set_ylabel(r'$ \frac {1}{y* - y}$',  fontsize=10)
             axes[0].set_xlabel(f'Мольная доля ллт в паре', fontsize=10)
             axes[0].legend(loc='upper center')
 
@@ -972,6 +957,114 @@ class Calculations():
                 color = 'green', alpha = 0.4)
             axes[1].set_ylabel(f'Мольная доля ллт в паре', fontsize=10)
             axes[1].set_xlabel(f'Мольная доля ллт в жидкости', fontsize=10)
+            
+        if plot_type == 'plotly':
+            
+            fig = make_subplots(rows=1, cols=2)
+
+            fig.add_trace(go.Scatter(x=wi_x, y=fw(w_x),
+                                        line=dict(
+                                            color='rgb(0, 77, 153)',
+                                            width=3),
+                                        mode='lines',
+                                        name='',
+                                        fill='tozeroy'
+                                        ), row=1, col=1)
+            
+            fig.add_trace(go.Scatter(x=pi_x, y=fp(p_x),
+                                        line=dict(
+                                            color='green',
+                                            width=3),
+                                        mode='lines',
+                                        name='',
+                                        fill='tozeroy'
+                                        ), row=1, col=1)
+            
+            fig.add_trace(go.Scatter(x=xy, y=fxy(xy),
+                                        line=dict(
+                                            color='rgb(0, 77, 153)',
+                                            width=3),
+                                        mode='lines',
+                                        name='',
+                                        fill=None
+                                        ), row=1, col=2)
+            
+            fig.add_trace(go.Scatter(x=_x, y=W_line,
+                                        line=dict(
+                                            color='rgb(0, 77, 153)',
+                                            width=2),
+                                        mode='lines',
+                                        name='исчерпывающая рабочая линия',
+                                        fill=None
+                                        ), row=1, col=2)
+            
+            fig.add_trace(go.Scatter(x=x_, y=P_line,
+                                        line=dict(
+                                            color='green',
+                                            width=2),
+                                        mode='lines',
+                                        name='укрепляющая рабочая линия',
+                                        fill=None
+                                        ), row=1, col=2)
+            
+            fig.add_trace(go.Scatter(x=_, y=_,
+                                        line=dict(
+                                            color='grey',
+                                            width=1),
+                                        mode='lines+markers',
+                                        name='линия нулевого разделения'
+                                        ), row=1, col=2)
+            
+            fig.update_xaxes(range=[-0.01, 1.01],
+                                    row=1, col=1,
+                                    showline=True, linewidth=2, linecolor='black',
+                                    mirror=True,
+                                    ticks='inside',
+                                    gridcolor='rgb(105,105,105)',
+                                    griddash='1px',
+                                    zeroline=False,
+                                    title_text='мольная доля ллт в паре')
+            
+            fig.update_xaxes(range=[-0.01, 1.01],
+                                    row=1, col=2,
+                                    showline=True, linewidth=2, linecolor='black',
+                                    mirror=True,
+                                    ticks='inside',
+                                    gridcolor='rgb(105,105,105)',
+                                    griddash='1px',
+                                    zeroline=False,
+                                    title_text='мольная доля ллт в жидкости')
+            
+            fig.update_yaxes( 
+                        row=1, col=1,
+                        showline=True, linewidth=2, linecolor='black',
+                        mirror=True,
+                        ticks='inside',
+                        gridcolor='rgb(105,105,105)',
+                        griddash='1px',
+                        zeroline=False,
+                        title_text=r'$ \frac {1}{y* - y}$')
+            
+            fig.update_yaxes( 
+                        row=1, col=2,
+                        showline=True, linewidth=2, linecolor='black',
+                        mirror=True,
+                        ticks='inside',
+                        gridcolor='rgb(105,105,105)',
+                        griddash='1px',
+                        zeroline=False,
+                        title_text='мольная доля ллт в паре')
+            
+            fig.update_layout(
+                        autosize=False,
+                        width=1000,
+                        height=500,
+                        margin=dict(l=20, r=5, t=20, b=2),
+                        showlegend=False,
+                        plot_bgcolor='white')
+            
+            return fig, bottom, top
+        
         return bottom, top
     
     def calculate_diameter(balance, Ropt, properties, filling_name: str):
