@@ -10,7 +10,7 @@ from data_functions import DataFunctions as dfc
 
 class Calculations():
     
-    def get_plate_column_hight(Ropt, balance, kinetic_frame, diagram, diameter, plot_lines='True'):
+    def get_plate_column_height(Ropt, balance, kinetic_frame, diagram, diameter, plot_type='matplotlib'):
         kinematic_diagram=dfc.get_coeffs(
             kinetic_frame['значение кинетической кривой'].index,
             kinetic_frame['значение кинетической кривой'].values)
@@ -78,8 +78,9 @@ class Calculations():
                 Zv = 1
                 Zn = 2
                 
-        if plot_lines == 'True':
-            _ = [0, 1]
+        _ = [0, 1]
+        if plot_type == 'matplotlib':
+            
             fig = plt.figure(figsize=(8,8))
             axes = fig.add_subplot()    
             axes.plot(stair_line_x,stair_line_y, 'o--', lw=1, ms=1)
@@ -89,9 +90,29 @@ class Calculations():
             axes.plot(_x, W_line, color='green', lw=1, ms=2)
             axes.plot(x_, P_line, color='green', lw=1, ms=2)
             axes.set_title(f"N = {len(step)} высота колонны = {((len(step) - 1)*0.5+Zv+Zn)}")
-
-        return pd.Series({'общее число действительных тарелок':len(step),
-                        'высота колонны':((len(step) - 1)*0.5+Zv+Zn)})
+            
+            return pd.Series(
+                {'общее число действительных тарелок':len(step),
+                 'высота колонны':((len(step) - 1)*0.5+Zv+Zn)})
+        
+        if plot_type=='plotly':
+            
+            fig = Figures.plot_plate_column_height(stair_line_x, stair_line_y, diagram, diagram_xy, kinetic_frame, kinetic_xy,
+                            _x, W_line, x_, P_line, _)
+            
+            fig.update_layout(
+                autosize=False,
+                width=500,
+                height=500,
+                margin=dict(l=20, r=5, t=30, b=2),
+                showlegend=False,
+                plot_bgcolor='white',
+                title_text=f"N = {len(step)} высота колонны = {((len(step) - 1)*0.5+Zv+Zn)} метра",
+                title_x=0.5)
+            
+            return fig, pd.Series(
+                {'общее число действительных тарелок':len(step),
+                 'высота колонны':((len(step) - 1)*0.5+Zv+Zn)})
     
     def calculate_kinetic_slice(x, xy_diagram, plate_coeffs, balance, properties, plate, Ropt, diameter):
         
@@ -1414,13 +1435,13 @@ class Calculations():
 
 class Figures():
     
-    def plot_xy_diagram(diagram, A_name, plot_type='plotly'):
+    def plot_xy_diagram(diagram, A_name, plot_type='matplotlib'):
         """Возвращает фигуру из двух графиков ху_т и х_у диаграмм
 
         Args:
             diagram (pd.Dataframe): таблица с данными равновесия
             A_name (any): название легколетучего компонента для подписи осей
-            plot_type (str, optional): может быть и 'matplotlib'. Defaults to 'plotly'.
+            plot_type (str, optional): может быть и 'plotly'. Defaults to 'matplotlib'.
 
         Returns:
             _type_: фигура из двух графиков
@@ -1539,6 +1560,8 @@ class Figures():
                 margin=dict(l=20, r=5, t=20, b=2),
                 showlegend=False,
                 plot_bgcolor='white')
+            
+            return fig
                     
         if plot_type=='matplotlib':
             plt.style.use(['science', 'no-latex', 'notebook', 'grid'])
@@ -1566,7 +1589,7 @@ class Figures():
             axes2.set_ylabel(f'Мольная доля {A_name} в паре', fontsize=15)
             axes2.set_xlabel(f'Мольная доля {A_name} в жидкости', fontsize=15)
         
-        return fig
+        return
     
     def plot_range_phlegm_number(fig, i, diagram, stair_line_x, stair_line_y, x_y, _x, x_, W_line, P_line, N, yf, R, plot_type):
         """функция вызывается из 'range_phlegm_number' и в зависимости от выбранного 'plot_type' строит фигуру либо 
@@ -1730,4 +1753,62 @@ class Figures():
             
             return fig
         
-        return 
+        return
+    
+    def plot_plate_column_height(stair_line_x, stair_line_y, diagram, diagram_xy, kinetic_frame, kinetic_xy,
+                            _x, W_line, x_, P_line, _):
+        fig = go.Figure()            
+        fig.add_trace(go.Scatter(x=list(map(float, stair_line_x)), y=list(map(float, stair_line_y)),
+                                line=dict(
+                                    color='red',
+                                    width=1),
+                                mode='lines',
+                                name='ступени изменения концентраций'))            
+        fig.add_trace(go.Scatter(x=diagram['x'], y=diagram_xy,
+                                line=dict(
+                                    color='black',
+                                    width=0.5),
+                                mode='lines',
+                                name='аппроксимация x-y диаграммы'))            
+        fig.add_trace(go.Scatter(x=kinetic_frame['значение кинетической кривой'].index, y=kinetic_xy,
+                                line=dict(
+                                    color='blue',
+                                    width=2),
+                                mode='lines',
+                                name='кинетическая кривая'))
+        fig.add_trace(go.Scatter(x=_x, y=W_line,
+                                line=dict(
+                                    color='black',
+                                    width=1),
+                                mode='lines',
+                                name='исчерпывающая рабочая линия'))
+        fig.add_trace(go.Scatter(x=x_, y=P_line,
+                                line=dict(
+                                    color='black',
+                                    width=1),
+                                mode='lines',
+                                name='укрепляющая рабочая линия'))
+        fig.add_trace(go.Scatter(x=_, y=_,
+                                line=dict(
+                                    color='grey',
+                                    width=1),
+                                mode='lines',
+                                name='линия нулевого разделения'))
+        
+        fig.update_xaxes(range=[-0.01, 1.01],
+                            showline=True, linewidth=2, linecolor='black',
+                            mirror=True,
+                            ticks='inside',
+                            gridcolor='rgb(105,105,105)',
+                            griddash='1px',
+                            zeroline=False)
+        
+        fig.update_yaxes(range=[-0.05, 1.05],
+                            showline=True, linewidth=2, linecolor='black',
+                            mirror=True,
+                            ticks='inside',
+                            gridcolor='rgb(105,105,105)',
+                            griddash='1px',
+                            zeroline=False)
+        
+        return fig
