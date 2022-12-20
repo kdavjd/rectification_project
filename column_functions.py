@@ -605,9 +605,9 @@ class Calculations():
             plot_lines (str, optional): Нужно ли строить графики или просто делать рсчет. Defaults to 'matplotlib'.
 
         Returns:
-            R: Массив с набором рабочих флегмовых чисел
-            Ngraf: Массив с набором чисел ступеней разделения
-            fig: если выбран plot_type 'plotly'
+            R, Ngraf: if plot_type != 'plotly' Массив с набором рабочих флегмовых чисел, массив с набором чисел ступеней разделения
+            
+            fig, R, Ngraf: if plot_type == 'plotly' график и массивы            
             """
         if Bt_range > 50:
             Bt_range = 50
@@ -894,6 +894,18 @@ class Calculations():
         return properties
     
     def get_transfer_numbers(balance, Ropt, xy_diagram, plot_type = 'matplotlib'):
+        """Функция возвращает число единиц переноса для модифицированного уравнения массопередачи. Подробнее в [1] стр 232
+
+        Args:
+            balance (pd.Series): результат функции get_material_balance
+            Ropt (float): Оптимальное флегмовое число
+            xy_diagram (np.array): аппроксимация диаграммы жидкость-пар полиномом
+            plot_type (str, optional): если plotly, то функция вернет fig, bottom, top. Defaults to 'matplotlib'.
+
+        Returns:
+            bottom, top: if plot_type != 'plotly'. Число единиц переноса вверху колонны и внизу
+            fig, bottom, top: if plot_type == 'plotly'. График и число единиц переноса
+        """
     
         #Готовим значения функций для графиков
         yf = Ropt/(Ropt+1)*balance['xf']+balance['xp']/(Ropt+1)
@@ -1555,8 +1567,6 @@ class Figures():
                             ticks='inside')
             fig.update_layout(
                 autosize=False,
-                width=1000,
-                height=500,
                 margin=dict(l=20, r=5, t=20, b=2),
                 showlegend=False,
                 plot_bgcolor='white')
