@@ -581,6 +581,7 @@ class Calculations():
         """
         
         attr = getattr(component, attribute)
+        attr = attr.dropna(axis=1)
         coeff = dfc.get_coeffs(list(attr.columns),list(*attr.values))
         value = np.poly1d(coeff)(temperature)
         
@@ -897,7 +898,7 @@ class Calculations():
         """Функция возвращает число единиц переноса для модифицированного уравнения массопередачи. Подробнее в [1] стр 232
 
         Args:
-            balance (pd.Series): результат функции get_material_balance
+            balance (pd.Series): результат функции material_balance
             Ropt (float): Оптимальное флегмовое число
             xy_diagram (np.array): аппроксимация диаграммы жидкость-пар полиномом
             plot_type (str, optional): если plotly, то функция вернет fig, bottom, top. Defaults to 'matplotlib'.

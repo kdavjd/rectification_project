@@ -1,7 +1,7 @@
 import glob
 import pandas as pd
 import numpy as np
-from dash import html, dcc, Input, Output
+from dash import html, dcc, Input, Output, State
 import dash_bootstrap_components as dbc
 from app import app
 
@@ -137,7 +137,11 @@ def get_diagrams_options():
     return diagrams_labels, diagrams_values
 diagrams_labels, diagrams_values = get_diagrams_options()
 
+def get_a_name(name):
+    return name[0:name.find('-')]
 
+def get_b_name(name):
+    return name[name.find('-')+1:]
 
 Substance = {'A':Сomponent(name='Метанол'), 'B':Сomponent(name='Этанол')}
 A_name = Substance['A'].ph_organic['formula'].values
@@ -155,6 +159,7 @@ diagram.sort_values(by = ['t'], ascending=False,ignore_index=True, inplace=True)
 xy_diagram = dfс.get_coeffs(diagram['x'], diagram['y'])
 
 
+
 F = np.double(5)                  #Производительность по исходной смеси кг/с
 FEED_TEMPERATURE = np.double(20)  #Начальная температура
 FEED = np.double(0.35)            #В исходной смеси %масс Ллт 
@@ -162,8 +167,9 @@ DISTILLATE = np.double(0.98)      #В дистилляте(ректификат�
 BOTTOM = np.double(0.017)         #В кубовом остатке %масс ллт
 PRESSURE = np.double(10**5)       #Давление в колонне в Па. Влияет на коэфф. диффузии пара в колонне
 
-diagram_fig = figures.plot_xy_diagram(diagram, A_name, plot_type='plotly')
+
 balance = clc.material_balance(F, FEED, DISTILLATE, BOTTOM, xy_diagram, Substance)
+balance.apply(lambda x: np.round(x,2))
 
 phlegm_number_fig, R, Ngraf = clc.get_range_phlegm_number(
     balance['yf'],
@@ -195,13 +201,14 @@ height = clc.calculate_hight(
 
 thermal_balance = clc.calculate_thermal_balance(balance, properties, Ropt)
 
+#таблица
 
 
 #выпадающие списки
 properties_dropdown = dcc.Dropdown(
     id='properties-dropdown',
     options=[{'label':column, 'value':column} for column in properties.columns],
-    value=list(properties.columns[0:7]),
+    value=list(properties.columns[0:6]),
     multi=True)
 
 diagrams_dropdown = dcc.Dropdown(
@@ -209,25 +216,45 @@ diagrams_dropdown = dcc.Dropdown(
     options=[{'label':label, 'value':value} for label,value in list(zip(diagrams_labels, diagrams_values))],
     value=diagrams_values[0])
 
-#слайдеры
-substance_slider = dcc.RangeSlider(
-    id='substance-slider',
-    min=0, 
-    max=1, 
-    marks=None, 
-    value=[0.017, 0.35, 0.98])
+#импуты
+inputs = html.Div(
+    [
+        html.Div('Исходные данные на проектирование'),
+        dbc.Input(id='F', placeholder="Производительность, кг/с", size="sm"),
+        dbc.Input(id='FEED-TEMPERATURE', placeholder="Температура смеси, °С", size="sm"),
+        dbc.Input(id='FEED', placeholder="доля ЛЛТ в исходной смеси", size="sm"),
+        dbc.Input(id='DISTILLATE', placeholder="доля ЛЛТ в дистилляте", size="sm"),
+        dbc.Input(id='BOTTOM', placeholder="доля ЛЛТ в кубе", size="sm"),
+        dbc.Input(id='PRESSURE', placeholder="давление внутри колонны, Па (10**5)", size="sm"),
+    ])
 
+inline_radioitems = html.Div(
+    [
+        dbc.Label("Выберите размер насадки"),
+        dbc.RadioItems(
+            options=[
+                {"label": "50x50x5", "value": '50x50x5'},
+                {"label": '35x35x4', "value": '35x35x4'},
+                {"label": '25x25x3', "value": '25x25x3'},
+            ],
+            value=1,
+            id="filling-input",
+            inline=True
+            )])
+
+button = html.Div([dbc.Button("Выполнить расчет", size="lg", id='main-button')])
 
 filling_layout = html.Div([    
     dbc.Row([dbc.Col([html.Div('Выберите бинарную смесь '),
-                      html.Div(diagrams_dropdown)], width=3),
-            dbc.Col([html.Div('Задайте чистоту продукта и исходную смесь'),
-                      html.Div(substance_slider)], width=5)]),
-    dbc.Row(dbc.Col([html.Div(id='diagram-table')], width=3)),
-    dbc.Row([dbc.Col([html.Div('Выберите физико-химические свойства веществ для таблицы ниже: '),
-                      html.Div(properties_dropdown)], width=6),
-             dbc.Col()]),
-    dbc.Row(dbc.Col([html.Div(id='properties-table')], width=8)),
+                      html.Div([diagrams_dropdown, inputs, inline_radioitems, html.Hr(), button])], width=3),
+            dbc.Col([html.Div(id='diagram-table')], width={"size": 2, "offset": 0}),
+            dbc.Col([dcc.Graph(id='diagram-figure')])]),
+    html.Hr(),
+    dbc.Row([dbc.Col([html.Div(id='balance-table')], width={"size": 3, "offset": 0}),
+             dbc.Col([html.Div('Выберите физико-химические свойства веществ для таблицы ниже: '),
+                      html.Div(properties_dropdown),
+                      html.Div(id='properties-table')], width=9)]),
+    dbc.Row([dbc.Col([dcc.Graph(id='range-phlegm-number-figure')])]),    
     ],
     style={'margin-left': '10px',
            'margin-right': '10px'}
@@ -242,9 +269,13 @@ def create_preperties_table(properties_list):
 
 @app.callback(
     Output(component_id='diagram-table', component_property='children'),
+    Output(component_id='diagram-figure', component_property='figure'),
     Input(component_id='diagrams-dropdown', component_property='value')
 )
 def get_diagram(substances):
+    
+    global diagram
+    global Substance
     
     def ends(df, x=5):
         return pd.concat([df.head(x), df.tail(x)])
@@ -258,8 +289,92 @@ def get_diagram(substances):
     if diagram['y'].values.max() > 1:
         diagram['y'] = diagram['y']/100
         
-    diagram.sort_values(by = ['t'], ascending=False,ignore_index=True, inplace=True)    
-    return dbc.Table.from_dataframe(df=round(ends(diagram),2), index=True)
+    diagram.sort_values(by = ['t'], ascending=False,ignore_index=True, inplace=True)
+    
+    Substance = {'A':Сomponent(name=str(*ph_organic[ph_organic.formula == get_a_name(substances)].name.values)),
+                 'B':Сomponent(name=str(*ph_organic[ph_organic.formula == get_b_name(substances)].name.values))}
+    
+    print(Substance['A'].ph_organic.name) 
+    
+    return (html.Div(dbc.Table.from_dataframe(df=round(ends(diagram),2), index=True)),
+            figures.plot_xy_diagram(diagram, get_a_name(substances), plot_type='plotly'))
+    
+@app.callback(
+    Output("balance-table", "children"),
+    Output("range-phlegm-number-figure", "figure"),    
+    [State("F", "value"),
+     State("FEED-TEMPERATURE", "value"),
+     State("FEED", "value"),
+     State("DISTILLATE", "value"),
+     State("BOTTOM", "value"),
+     State("PRESSURE", "value"),
+     Input("main-button", "n_clicks"),
+     ]
+)
+def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, BUTTON):
+    
+    global balance        
+    global Substance
+    global xy_diagram
+    global balance
+    global properties
+    
+    if BUTTON == 0:
+        return(dbc.Table.from_dataframe(balance, index=True, header=False),
+                phlegm_number_fig)
+    else:
+        
+        if F == None:
+            F = np.double(5)
+        else:
+            F=np.double(F)
+            
+        if FEED_TEMPERATURE == None:
+            FEED_TEMPERATURE = np.double(20)
+        else:
+            FEED_TEMPERATURE = np.double(FEED_TEMPERATURE)
+            
+        if FEED == None:
+            FEED = np.double(0.35)
+        else:
+            FEED = np.double(FEED)
+            
+        if DISTILLATE == None:
+            DISTILLATE = np.double(0.98)
+        else:
+            DISTILLATE = np.double(DISTILLATE)
+        
+        if BOTTOM == None:
+            BOTTOM = np.double(0.03)
+        else:
+            BOTTOM = np.double(BOTTOM)
+            
+        if PRESSURE == None:
+            PRESSURE = np.double(10**5)
+        else:
+            PRESSURE = np.double(PRESSURE)
 
-if __name__=='__main__':
-    print(diagrams_dropdown)
+                
+        xy_diagram = dfс.get_coeffs(diagram['x'], diagram['y'])
+        
+        balance = clc.material_balance(F, FEED, DISTILLATE, BOTTOM, xy_diagram, Substance)
+        balance = balance.apply(lambda x: np.round(x,2))
+        
+        properties = clc.calculate_properties(diagram, balance, Substance)
+        
+        
+        phlegm_number_fig, R, Ngraf = clc.get_range_phlegm_number(
+            balance['yf'],
+            balance['xw'],
+            balance['xf'],
+            balance['xp'],
+            balance['Rmin'],
+            xy_diagram,
+            diagram,
+            Bt_range=20,#изменяемый параметр
+            plot_type='plotly')
+        
+        
+        return (dbc.Table.from_dataframe(balance, index=True, header=False),
+                phlegm_number_fig,
+                )
