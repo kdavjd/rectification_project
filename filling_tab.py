@@ -1,113 +1,24 @@
 import glob
 import pandas as pd
 import numpy as np
+import plotly.express as px
 from dash import html, dcc, Input, Output, State
 import dash_bootstrap_components as dbc
 from app import app
 
-from column_functions import Calculations as clc
-from column_functions import Figures as figures
-from data_functions import DataFunctions as dfс
-from equipment_functions import Calculations as eq
+from app_data import *
+from functions.column_functions import Calculations as clc
+from functions.column_functions import Figures as figures
+from functions.equipment_functions import Calculations as eq
 
-am = pd.read_excel('data/atomic_mass.xlsx')
-aqua_liquid_saturation = pd.read_excel('data/ph_H2O_saturation_liquid.xlsx')
-aqua_vapor_saturation = pd.read_excel('data/ph_H2O_saturation_gas.xlsx')
-aqua_vapor_saturation_by_pressure = pd.read_excel('data/ph_H2O_saturation_gas_by_pressure.xlsx')
-mass_concentration_solution = pd.read_excel('data/mass_concentration_solution.xlsx')
-boiling_point_solution = pd.read_excel('data/boiling_point_solution.xlsx')
-density_solution = pd.read_excel('data/density_solution.xlsx')
-vicosity_solution = pd.read_excel('data/vicosity_solution.xlsx')
-specific_heat_capacity_solution = pd.read_excel('data/heat_capacity_solution.xlsx')
-thermal_conductivity_solutions = pd.read_excel('data/thermal_conductivity_solutions.xlsx')
-ph_gases = pd.read_excel('data/ph_gases.xlsx')
-ph_organic = pd.read_excel('data/ph_organic.xlsx')
-density_organic_liquid = pd.read_excel('data/density_organic_liquid.xlsx')
-vicosity_organic_liquid = pd.read_excel('data/vicosity_organic_liquid.xlsx')
-interfactial_tension_organic_liquid = pd.read_excel('data/interfacial_tension_organic_liquid.xlsx')
-thermal_expansion_organic_liquid = pd.read_excel('data/thermal_expansion_organic_liquid.xlsx')
-heat_capacity_organic_liquid = pd.read_excel('data/heat_capacity_organic_liquid.xlsx')
-thermal_conductivity_organic_liquid = pd.read_excel('data/thermal_conductivity_organic_liquid.xlsx')
-heat_vaporization_organic_liquid = pd.read_excel('data/heat_vaporization_organic_liquid.xlsx')
-vapor_pressure_organic_liquid = pd.read_excel('data/vapor_pressure_organic_liquid.xlsx')
-vicosity_organic_vapor = pd.read_excel('data/vicosity_organic_vapor.xlsx')
-
-exclude_list =['salts','name','formula','salt']
-#Поверхностное натяжение органических жидкостей [мДж/м^2]
-interfactial_tension_organic_liquid = dfс.delete_hyphens(interfactial_tension_organic_liquid,exclude_list)
-
-#Теплопроводность органических жидкостей [Вт/(м*K)]
-thermal_conductivity_organic_liquid = dfс.delete_hyphens(thermal_conductivity_organic_liquid,exclude_list)
-
-#Свойства водяного пара в состянии насыщения в зависимости от давления
-aqua_vapor_saturation_by_pressure = dfс.delete_hyphens(aqua_vapor_saturation_by_pressure,exclude_list)
-
-#Коэффициенты объемного теплового расширения органических жидкостей b*10^3, K^-1
-thermal_expansion_organic_liquid = dfс.delete_hyphens(thermal_expansion_organic_liquid,exclude_list)
-
-#Теплота парообразования органических жидкостей [кДж/кг]
-heat_vaporization_organic_liquid = dfс.delete_hyphens(heat_vaporization_organic_liquid,exclude_list)
-
-#Удельная  теплоемкость водных р-ров cp = cpAQ - w * (d1 - d2*w -d3e-3 *t^2)
-specific_heat_capacity_solution = dfс.delete_hyphens(specific_heat_capacity_solution,exclude_list)
-
-#Теплопроводность водных р-ров неорганических соединений lya = lyaAQ * (1 - f*w)
-thermal_conductivity_solutions = dfс.delete_hyphens(thermal_conductivity_solutions,exclude_list)
-
-#Давление насыщенного пара [мм.рт.ст.] над органической жидкостью
-vapor_pressure_organic_liquid = dfс.delete_hyphens(vapor_pressure_organic_liquid,exclude_list)
-
-#Удельная теплоемкость [Дж/(кг*K)] органических жидкостей
-heat_capacity_organic_liquid = dfс.delete_hyphens(heat_capacity_organic_liquid,exclude_list)
-
-#Концентрации насыщенных водных растворов неорганических веществ кг/кг при °С
-mass_concentration_solution = dfс.delete_hyphens(mass_concentration_solution,exclude_list)
-
-#Динамическая вязкость органических жидкостей [мПа*с]
-vicosity_organic_liquid = dfс.delete_hyphens(vicosity_organic_liquid,exclude_list)
-
-#Плотность органических жидкостей [кг/м^3]
-density_organic_liquid = dfс.delete_hyphens(density_organic_liquid,exclude_list)
-
-#Температуры кипения водных растворов неорганических веществ при н.у.
-boiling_point_solution = dfс.delete_hyphens(boiling_point_solution,exclude_list)
-
-#Физические свойства воды на линии насыщения
-aqua_liquid_saturation = dfс.delete_hyphens(aqua_liquid_saturation,exclude_list)
-
-#Вязкость паров органических веществ [мкПа*с]
-vicosity_organic_vapor = dfс.delete_hyphens(vicosity_organic_vapor,exclude_list)
-
-#Свойства водяного пара в состянии насыщения в зависимости от температуры
-aqua_vapor_saturation = dfс.delete_hyphens(aqua_vapor_saturation,exclude_list)
-
-#Вязкость водных растворов неорганических веществ u = uaq*exp^[w(b1 + b2e-2 * t - b3e-7 * t^2)]
-vicosity_solution = dfс.delete_hyphens(vicosity_solution,exclude_list)
-
-#Плотность водных растворов p = paq*exp^[w*(a1 + a2e-4 * t - a3e-6 * t^2)], w[кг/кг], t[°C], p[кг/м^3], u[Па*c]
-density_solution = dfс.delete_hyphens(density_solution,exclude_list)
-
-#Основные характеристики органических веществ
-ph_organic = dfс.delete_hyphens(ph_organic,exclude_list)
-
-#Свойства газов при н.у.
-ph_gases = dfс.delete_hyphens(ph_gases,exclude_list)
-#am = delete_hyphens(am)
-
-class Сomponent():
-                
-    def __init__(self, name):        
-        self.interfactial_tension_organic_liquid = interfactial_tension_organic_liquid[interfactial_tension_organic_liquid['name'] == name].drop('name', axis=1)
-        self.thermal_conductivity_organic_liquid = thermal_conductivity_organic_liquid[thermal_conductivity_organic_liquid['name'] == name].drop('name', axis=1)
-        self.thermal_expansion_organic_liquid = thermal_expansion_organic_liquid[thermal_expansion_organic_liquid['name'] == name].drop('name', axis=1)
-        self.heat_vaporization_organic_liquid = heat_vaporization_organic_liquid[heat_vaporization_organic_liquid['name'] == name].drop('name', axis=1)        
-        self.vapor_pressure_organic_liquid = vapor_pressure_organic_liquid[vapor_pressure_organic_liquid['name'] == name].drop('name', axis=1)
-        self.heat_capacity_organic_liquid = heat_capacity_organic_liquid[heat_capacity_organic_liquid['name'] == name].drop('name', axis=1)
-        self.vicosity_organic_liquid = vicosity_organic_liquid[vicosity_organic_liquid['name'] == name].drop('name', axis=1)
-        self.vicosity_organic_liquid = vicosity_organic_liquid[vicosity_organic_liquid['name'] == name].drop('name', axis=1)
-        self.density_organic_liquid = density_organic_liquid[density_organic_liquid['name'] == name].drop('name', axis=1)
-        self.vicosity_organic_vapor = vicosity_organic_vapor[vicosity_organic_vapor['name'] == name].drop('name', axis=1)
-        self.ph_organic = ph_organic[ph_organic['name'] == name]
+#таблицы
+heaters_table = pd.read_excel('tables/Параметры кожухотрубчатых теплообменников и холодильников.xlsx',
+                   header=[2])
+evaporator_table = pd.read_excel('tables/Параметры кожухотрубчатых испарителей и конденсаторов по ГОСТ15119-79 и ГОСТ 5121-79.xlsx',
+                   header=[2])
+exclude_list = ['d труб, мм']
+heaters_table[exclude_list] = heaters_table[exclude_list].apply(eq.get_diameter)
+evaporator_table[exclude_list] = evaporator_table[exclude_list].apply(eq.get_diameter)
 
 def get_all_diagrams():
     def filter_diagrams(diagram):
@@ -137,17 +48,48 @@ def get_diagrams_options():
     return diagrams_labels, diagrams_values
 diagrams_labels, diagrams_values = get_diagrams_options()
 
+def get_heaters_dropdown():
+    pipes_names = ['1', '1.5', '2', '3', '4', '6', '9']
+    evaporator_pipes_names = [2,3,4,6]
+
+    def get_heater_index(row):
+        i = (str(int(row[0]))
+                + ' ' + str(row[1] + np.double(0.004))
+                + ' ' + str(int(row[2]))
+                + ' ' + str(int(row[3])))
+        return i
+
+    def get_evaporator_index(row):
+            i = (str(int(row['D кожуха, мм']))
+                    + ' ' + str(row['d труб, мм'] + np.double(0.004))
+                    + ' ' + str(int(row['Число ходов']))
+                    + ' ' + str(int(row['Общее число труб, шт'])))
+            return i
+            
+    evaporator = pd.DataFrame(columns=evaporator_pipes_names)
+    evaporator['name'] = evaporator_table.apply(get_evaporator_index, axis=1)
+    evaporator.index = evaporator['name']
+    evaporator = evaporator.drop('name', axis=1)
+    
+    heaters = pd.DataFrame(columns=pipes_names)
+    heaters['name'] = heaters_table.apply(get_heater_index, axis=1)
+    heaters.index = heaters['name']
+    heaters = heaters.drop('name', axis=1)
+    return heaters.index, evaporator.index
+heaters_label, evaporators_label = get_heaters_dropdown()
+evaporators_label = list(filter(lambda x: x.split()[1] == '0.025' and x.split()[2] == '1',evaporators_label))
+pipes_names = ['1', '1.5', '2', '3', '4', '6', '9']
+evaporator_pipes_names = [2,3,4,6]
+
 def get_a_name(name):
     return name[0:name.find('-')]
 
 def get_b_name(name):
     return name[name.find('-')+1:]
 
-Substance = {'A':Сomponent(name='Метанол'), 'B':Сomponent(name='Этанол')}
-A_name = Substance['A'].ph_organic['formula'].values
-B_name = Substance['B'].ph_organic['formula'].values
 
-diagram = pd.read_excel('l_v/CH3OH-CH3CH2OH.xlsx')
+Substance = {'A':Сomponent(name='Толуол'), 'B':Сomponent(name='Тетрахлорметан')}
+diagram = pd.read_excel('l_v/C6H5CH3-CCl4.xlsx')
 
 if diagram['x'].values.max() > 1:
     diagram['x'] = diagram['x']/100
@@ -158,15 +100,12 @@ if diagram['y'].values.max() > 1:
 diagram.sort_values(by = ['t'], ascending=False,ignore_index=True, inplace=True)
 xy_diagram = dfс.get_coeffs(diagram['x'], diagram['y'])
 
-
-
 F = np.double(5)                  #Производительность по исходной смеси кг/с
 FEED_TEMPERATURE = np.double(20)  #Начальная температура
 FEED = np.double(0.35)            #В исходной смеси %масс Ллт 
 DISTILLATE = np.double(0.98)      #В дистилляте(ректификате) %масс 
 BOTTOM = np.double(0.017)         #В кубовом остатке %масс ллт
 PRESSURE = np.double(10**5)       #Давление в колонне в Па. Влияет на коэфф. диффузии пара в колонне
-
 
 balance = clc.material_balance(F, FEED, DISTILLATE, BOTTOM, xy_diagram, Substance)
 balance.apply(lambda x: np.round(x,2))
@@ -201,10 +140,7 @@ height = clc.calculate_hight(
 
 thermal_balance = clc.calculate_thermal_balance(balance, properties, Ropt)
 
-#таблица
-
-
-#выпадающие списки
+#выпадающие списки, слайдеры
 properties_dropdown = dcc.Dropdown(
     id='properties-dropdown',
     options=[{'label':column, 'value':column} for column in properties.columns],
@@ -216,45 +152,192 @@ diagrams_dropdown = dcc.Dropdown(
     options=[{'label':label, 'value':value} for label,value in list(zip(diagrams_labels, diagrams_values))],
     value=diagrams_values[0])
 
-#импуты
+heaters_dropdown = dcc.Dropdown(
+    id='heaters-dropdown',
+    options=[{'label':value, 'value':value} for value in heaters_label],
+    value=heaters_label[0])
+
+heaters_pipes_dropdown = dcc.Dropdown(
+    id='heaters-pipes-dropdown',
+    options=[{'label':value, 'value':value} for value in pipes_names],
+    value=pipes_names[0])
+
+evaporators_dropdown = dcc.Dropdown(
+    id='evaporators-dropdown',
+    options=[{'label':value, 'value':value} for value in evaporators_label],
+    value=evaporators_label[0])
+
+evaporators_pipes_dropdown = dcc.Dropdown(
+    id='evaporators-pipes-dropdown',
+    options=[{'label':value, 'value':value} for value in evaporator_pipes_names],
+    value=evaporator_pipes_names[0])
+
+capacitors_dropdown = dcc.Dropdown(
+    id='capacitors-dropdown',
+    options=[{'label':value, 'value':value} for value in heaters_label],
+    value=heaters_label[0])
+
+capacitors_pipes_dropdown = dcc.Dropdown(
+    id='capacitors-pipes-dropdown',
+    options=[{'label':value, 'value':value} for value in pipes_names],
+    value=pipes_names[0])
+
+distillate_coolers_dropdown = dcc.Dropdown(
+    id='distillate-coolers-dropdown',
+    options=[{'label':value, 'value':value} for value in heaters_label],
+    value=heaters_label[0])
+
+distillate_coolers_pipes_dropdown = dcc.Dropdown(
+    id='distillate-coolers-pipes-dropdown',
+    options=[{'label':value, 'value':value} for value in pipes_names],
+    value=pipes_names[0])
+
+bottom_coolers_dropdown = dcc.Dropdown(
+    id='bottom-coolers-dropdown',
+    options=[{'label':value, 'value':value} for value in heaters_label],
+    value=heaters_label[0])
+
+bottom_coolers_pipes_dropdown = dcc.Dropdown(
+    id='bottom-coolers-pipes-dropdown',
+    options=[{'label':value, 'value':value} for value in pipes_names],
+    value=pipes_names[0])
+
+ropt_slider = html.Div([
+    dcc.RangeSlider(5, 30, 1, value=[20], id='ropt-range-slider')
+])
+heater_slider = html.Div([
+    dcc.RangeSlider(1, 15, 1, value=[3], id='heater-pressure-slider')
+])
+evaporator_slider = html.Div([    
+    dcc.RangeSlider(1, 15, 1, value=[3], id='evaporator-pressure-slider')
+])
+capacitor_slider = html.Div([
+    dcc.RangeSlider(10, 50, 5, value=[20,30], id='capacitor-t-slider')
+])
+
+#импуты, кнопки
 inputs = html.Div(
-    [
-        html.Div('Исходные данные на проектирование'),
-        dbc.Input(id='F', placeholder="Производительность, кг/с", size="sm"),
-        dbc.Input(id='FEED-TEMPERATURE', placeholder="Температура смеси, °С", size="sm"),
-        dbc.Input(id='FEED', placeholder="доля ЛЛТ в исходной смеси", size="sm"),
-        dbc.Input(id='DISTILLATE', placeholder="доля ЛЛТ в дистилляте", size="sm"),
-        dbc.Input(id='BOTTOM', placeholder="доля ЛЛТ в кубе", size="sm"),
-        dbc.Input(id='PRESSURE', placeholder="давление внутри колонны, Па (10**5)", size="sm"),
+    [html.Div('Исходные данные на проектирование'),
+     dbc.Input(id='F', placeholder="производительность, кг/с", size="sm"),
+     dbc.Input(id='FEED-TEMPERATURE', placeholder="температура смеси, °С", size="sm"),
+     dbc.Input(id='FEED', placeholder="доля ЛЛТ в исходной смеси", size="sm"),
+     dbc.Input(id='DISTILLATE', placeholder="доля ЛЛТ в дистилляте", size="sm"),
+     dbc.Input(id='BOTTOM', placeholder="доля ЛЛТ в кубе", size="sm"),
+     dbc.Input(id='PRESSURE', placeholder="давление внутри колонны, Па (10**5)", size="sm"),
+     dbc.Input(id='ROPT', placeholder="выберите флегмовое число число", size="sm"),
     ])
 
-inline_radioitems = html.Div(
-    [
-        dbc.Label("Выберите размер насадки"),
-        dbc.RadioItems(
+distillate_cooler_inputs = html.Div(
+    [dbc.Input(id='distillate-cooler-aq-t', placeholder="температура воды на охлаждение ~5-20°С (по умолчанию 20)", size="sm"),
+     dbc.Input(id='distillate-cooler-tk', placeholder="до какой температуры охлаждать дистиллят, °С (по умолчанию 30)", size="sm")])
+
+bottom_cooler_inputs = html.Div(
+    [dbc.Input(id='bottom-cooler-aq-t', placeholder="температура воды на охлаждение ~5-20°С (по умолчанию 20)", size="sm"),
+     dbc.Input(id='bottom-cooler-tk', placeholder="до какой температуры охлаждать кубовый остаток, °С (по умолчанию 30)", size="sm")])
+
+filling_radioitems = html.Div(
+    [dbc.Label("Выберите размер насадки"),
+     dbc.RadioItems(
             options=[
                 {"label": "50x50x5", "value": '50x50x5'},
                 {"label": '35x35x4', "value": '35x35x4'},
                 {"label": '25x25x3', "value": '25x25x3'},
             ],
-            value=1,
+            value='50x50x5',
             id="filling-input",
-            inline=True
-            )])
+            inline=True)])
+
+heater_radioitems = html.Div(
+    [dbc.RadioItems(
+        options=[
+            {"label": 'вертикальный', "value": 'вертикальный'},
+            {"label": 'горизонтальный', "value": 'горизонтальный'}],
+        value='вертикальный',
+        id="heater-radioitems",
+        inline=True )])
+
+capacitor_radioitems = html.Div(
+    [dbc.RadioItems(
+        options=[
+            {"label": 'вертикальный', "value": 'вертикальный'},
+            {"label": 'горизонтальный', "value": 'горизонтальный'}],
+        value='вертикальный',
+        id="capacitor-radioitems",
+        inline=True)])
+
+distillate_cooler_radioitems = html.Div(
+    [dbc.RadioItems(
+        options=[
+            {"label": 'продукт', "value": 'продукт'},
+            {"label": 'вода', "value": 'вода'}],
+        value='продукт',
+        id="distillate-cooler-radioitems",
+        inline=True)])
+
+bottom_cooler_radioitems = html.Div(
+    [dbc.RadioItems(
+        options=[
+            {"label": 'продукт', "value": 'продукт'},
+            {"label": 'вода', "value": 'вода'}],
+        value='продукт',
+        id="bottom-cooler-radioitems",
+        inline=True)])
 
 button = html.Div([dbc.Button("Выполнить расчет", size="lg", id='main-button')])
+heaters_button = html.Div([dbc.Button("Подобрать кожухотрубчатые теплообменники", size="lg", id='heaters-button')])
 
+#фронт
 filling_layout = html.Div([    
     dbc.Row([dbc.Col([html.Div('Выберите бинарную смесь '),
-                      html.Div([diagrams_dropdown, inputs, inline_radioitems, html.Hr(), button])], width=3),
-            dbc.Col([html.Div(id='diagram-table')], width={"size": 2, "offset": 0}),
-            dbc.Col([dcc.Graph(id='diagram-figure')])]),
-    html.Hr(),
+                      html.Div([diagrams_dropdown, inputs, filling_radioitems, html.Hr(), button])], width=3),
+             dbc.Col([html.Div(id='diagram-table')], width={"size": 2, "offset": 0}),
+             dbc.Col([dcc.Graph(id='diagram-figure')])]),
+    html.Hr(style={"margin-bottom":"20px"}),
     dbc.Row([dbc.Col([html.Div(id='balance-table')], width={"size": 3, "offset": 0}),
-             dbc.Col([html.Div('Выберите физико-химические свойства веществ для таблицы ниже: '),
+             dbc.Col([html.Div('Таблица обновится после выбора свойств'),
                       html.Div(properties_dropdown),
                       html.Div(id='properties-table')], width=9)]),
-    dbc.Row([dbc.Col([dcc.Graph(id='range-phlegm-number-figure')])]),    
+    html.Hr(style={"margin-bottom":"20px"}),
+    dbc.Row([dbc.Col([html.Div(ropt_slider, style={"margin-bottom":"20px"}),
+                      dcc.Graph(id='range-phlegm-number-figure')], width={"size": 10, "offset": 1})]),
+    html.Hr(style={"margin-bottom":"20px"}),
+    dbc.Row([dbc.Col([dcc.Graph(id='ropt-figure')], width={"size": 4, "offset": 0}),
+             dbc.Col([dcc.Graph(id='transfer-numbers-figure')], width={"size": 8, "offset": 0})]),
+    html.Hr(style={"margin-bottom":"20px"}),
+    dbc.Row([dbc.Col([html.Div(id='diameter-table'),
+                      html.Hr(style={"margin-bottom":"270px"}),
+                      html.Div(id='thermal-balance-table'),], width={"size": 5, "offset": 0}),
+             dbc.Col([html.Div(id='height-table')], width={"size": 6, "offset": 1})]),
+    html.Hr(style={"margin-bottom":"20px"}),
+    dbc.Row([dbc.Col([html.Div([heaters_button])], width={"size": 4, "offset": 4}, style={"margin-bottom":"20px"})]),
+    dbc.Row([dbc.Col([html.Div([heater_radioitems, heater_slider, dbc.Label("Давление теплоносителя(воды) в подогревателе"),]),
+                      dcc.Graph(id='heater-figure')],width={"size": 4, "offset": 0}),
+             dbc.Col([html.Div([evaporator_slider, dbc.Label("Давление теплоносителя(воды) в испарителе")]),
+                      dcc.Graph(id='evaporator-figure')],width={"size": 4, "offset": 0}, style={"margin-top":"25px"}),
+             dbc.Col([html.Div([capacitor_radioitems, capacitor_slider, dbc.Label("Температура воды на входе и выходе дефлегматора"),]),
+                      dcc.Graph(id='capacitor-figure')],width={"size": 4, "offset": 0})]),
+    dbc.Row([dbc.Col([html.Div([heaters_dropdown])], width={"size": 3, "offset": 0}),
+             dbc.Col([html.Div([heaters_pipes_dropdown])], width={"size": 1, "offset": 0}),
+             dbc.Col([html.Div([evaporators_dropdown])], width={"size": 3, "offset": 0}),
+             dbc.Col([html.Div([evaporators_pipes_dropdown])], width={"size": 1, "offset": 0}),
+             dbc.Col([html.Div([capacitors_dropdown])], width={"size": 3, "offset": 0}),
+             dbc.Col([html.Div([capacitors_pipes_dropdown])], width={"size": 1, "offset": 0}),]),
+    dbc.Row([dbc.Col([html.Div(id='heater-table')], width={"size": 4, "offset": 0}),
+             dbc.Col([html.Div(id='evaporator-table')], width={"size": 4, "offset": 0}),
+             dbc.Col([html.Div(id='capacitor-table')], width={"size": 4, "offset": 0}),]),
+    html.Hr(style={"margin-bottom":"20px"}),
+    dbc.Row([dbc.Col([html.Div([dbc.Label("Холодильник дистиллята. В трубы можно пустить продукт или воду"),
+                                distillate_cooler_radioitems, distillate_cooler_inputs]),
+                      dcc.Graph(id='distillate-cooler-figure')],width={"size": 6, "offset": 0}),
+             dbc.Col([html.Div([dbc.Label("Холодильник кубового остатка. В трубы можно пустить продукт или воду"),
+                                bottom_cooler_radioitems, bottom_cooler_inputs]),
+                      dcc.Graph(id='bottom-cooler-figure')],width={"size": 6, "offset": 0})]),
+    dbc.Row([dbc.Col([html.Div([distillate_coolers_dropdown])], width={"size": 5, "offset": 0}),
+             dbc.Col([html.Div([distillate_coolers_pipes_dropdown])], width={"size": 1, "offset": 0}),
+             dbc.Col([html.Div([bottom_coolers_dropdown])], width={"size": 5, "offset": 0}),
+             dbc.Col([html.Div([bottom_coolers_pipes_dropdown])], width={"size": 1, "offset": 0})]),
+    dbc.Row([dbc.Col([html.Div(id='distillate-cooler-table')], width={"size": 6, "offset": 0}),
+             dbc.Col([html.Div(id='bottom-cooler-table')], width={"size": 6, "offset": 0})]),
     ],
     style={'margin-left': '10px',
            'margin-right': '10px'}
@@ -294,74 +377,66 @@ def get_diagram(substances):
     Substance = {'A':Сomponent(name=str(*ph_organic[ph_organic.formula == get_a_name(substances)].name.values)),
                  'B':Сomponent(name=str(*ph_organic[ph_organic.formula == get_b_name(substances)].name.values))}
     
-    print(Substance['A'].ph_organic.name) 
-    
     return (html.Div(dbc.Table.from_dataframe(df=round(ends(diagram),2), index=True)),
             figures.plot_xy_diagram(diagram, get_a_name(substances), plot_type='plotly'))
     
 @app.callback(
     Output("balance-table", "children"),
-    Output("range-phlegm-number-figure", "figure"),    
+    Output("range-phlegm-number-figure", "figure"),
+    Output("ropt-figure", "figure"),
+    Output("transfer-numbers-figure", "figure"),
+    Output("diameter-table", "children"),
+    Output("height-table", "children"),
+    Output("thermal-balance-table", "children"),
     [State("F", "value"),
      State("FEED-TEMPERATURE", "value"),
      State("FEED", "value"),
      State("DISTILLATE", "value"),
      State("BOTTOM", "value"),
      State("PRESSURE", "value"),
+     State("ROPT", 'value'),
+     State("filling-input", 'value'),
+     State('ropt-range-slider','value'),
      Input("main-button", "n_clicks"),
      ]
 )
-def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, BUTTON):
+def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, ROPT,
+                    FILLING, BT_RANGE, BUTTON):
     
     global balance        
     global Substance
     global xy_diagram
     global balance
     global properties
+    global thermal_balance
+    global Ropt
     
     if BUTTON == 0:
-        return(dbc.Table.from_dataframe(balance, index=True, header=False),
-                phlegm_number_fig)
+        pass
     else:
         
-        if F == None:
-            F = np.double(5)
-        else:
-            F=np.double(F)
-            
-        if FEED_TEMPERATURE == None:
-            FEED_TEMPERATURE = np.double(20)
-        else:
-            FEED_TEMPERATURE = np.double(FEED_TEMPERATURE)
-            
-        if FEED == None:
-            FEED = np.double(0.35)
-        else:
-            FEED = np.double(FEED)
-            
-        if DISTILLATE == None:
-            DISTILLATE = np.double(0.98)
-        else:
-            DISTILLATE = np.double(DISTILLATE)
+        def get_values_list(value_list):
+            init_values = np.double([5, 20, 0.35, 0.98, 0.017, 10**5])
+            for i,value in enumerate(init_values):
+                if value_list[i] == None or len(value_list[i]) < 1:
+                    value_list[i] = value
+            return np.double(value_list)
         
-        if BOTTOM == None:
-            BOTTOM = np.double(0.03)
-        else:
-            BOTTOM = np.double(BOTTOM)
-            
-        if PRESSURE == None:
-            PRESSURE = np.double(10**5)
-        else:
-            PRESSURE = np.double(PRESSURE)
-
-                
+        value_list = get_values_list([F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE])
+        F = value_list[0]
+        FEED_TEMPERATURE = value_list[1]
+        FEED = value_list[2]
+        DISTILLATE = value_list[3]
+        BOTTOM = value_list[4]
+        PRESSURE = value_list[5]
+        BT_RANGE = int(*BT_RANGE)
+        
         xy_diagram = dfс.get_coeffs(diagram['x'], diagram['y'])
         
         balance = clc.material_balance(F, FEED, DISTILLATE, BOTTOM, xy_diagram, Substance)
         balance = balance.apply(lambda x: np.round(x,2))
         
         properties = clc.calculate_properties(diagram, balance, Substance)
-        
         
         phlegm_number_fig, R, Ngraf = clc.get_range_phlegm_number(
             balance['yf'],
@@ -371,10 +446,424 @@ def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, BUT
             balance['Rmin'],
             xy_diagram,
             diagram,
-            Bt_range=20,#изменяемый параметр
+            Bt_range=BT_RANGE,
             plot_type='plotly')
         
+        Ropt_fig, Ropt = clc.get_optimal_phlegm_number(R, Ngraf, plot_type='plotly')
+        Ropt_fig.update_layout(title_text='Определение рабочего флегмового числа', title_font_size=14, title_x=0.5)
+                
+        if ROPT != None:
+            if len(ROPT) > 0:
+                Ropt = np.double(ROPT)
         
+        transfer_numbers_fig, bottom, top = clc.get_transfer_numbers(balance, Ropt, xy_diagram, plot_type='plotly')
+        transfer_numbers_fig.update_layout(
+            title_text=f'Определение числа единиц переноса. Интеграл нижней части n={bottom}, Интеграл верхней части n={top}',
+            title_font_size=14, 
+            title_x=0.5)
+        
+        diameter = clc.calculate_diameter(balance, Ropt, properties, filling_name=FILLING)
+        height = clc.calculate_hight(
+            balance,
+            properties,
+            diameter,
+            xy_diagram,
+            bottom,
+            top,
+            Substance,
+            Ropt,
+            PRESSURE,
+            filling_name=FILLING)
+        thermal_balance = clc.calculate_thermal_balance(balance, properties, Ropt)
+               
         return (dbc.Table.from_dataframe(balance, index=True, header=False),
                 phlegm_number_fig,
+                Ropt_fig,
+                transfer_numbers_fig,
+                dbc.Table.from_dataframe(diameter, index=True, header=False),
+                dbc.Table.from_dataframe(height, index=True, header=False),
+                dbc.Table.from_dataframe(thermal_balance, index=True, header=False),
                 )
+        
+@app.callback(
+    Output("heater-figure", "figure"),
+    Output("evaporator-figure", "figure"),
+    Output("capacitor-figure", "figure"),
+    Output("distillate-cooler-figure", "figure"),
+    Output("bottom-cooler-figure", "figure"),
+    [State("FEED-TEMPERATURE", "value"),
+     State("heater-radioitems", "value"),
+     State('heater-pressure-slider', "value"),
+     State('evaporator-pressure-slider', "value"),
+     State("capacitor-radioitems", "value"),
+     State('capacitor-t-slider', "value"),
+     State("distillate-cooler-radioitems", "value"),
+     State("distillate-cooler-aq-t", "value"),
+     State("distillate-cooler-tk", "value"),
+     State("bottom-cooler-radioitems", "value"),
+     State("bottom-cooler-aq-t", "value"),
+     State("bottom-cooler-tk", "value"),
+     Input("heaters-button", "n_clicks"),]
+    
+)
+def on_heaters_button_click(FEED_TEMPERATURE, HEATER_ORIENTACION, HEATER_AQ_PRESSURE, 
+                            EVAPORATOR_AQ_PRESSURE, CAPACITOR_ORIENTACION, CAPACITOR_T,
+                            DISTILLATE_PIPES, DISTILLATE_AQ_T, DISTILLATE_TK, 
+                            BOTTOM_PIPES, BOTTOM_AQ_T, BOTTOM_TK, BUTTON):
+    
+    global balance        
+    global Substance
+    global xy_diagram
+    global balance
+    global properties
+    global thermal_balance
+    global Ropt
+    
+    if BUTTON == 0:
+        pass
+    else:
+        def get_values_list(value_list):
+            init_values = np.double([20, 20, 30, 20, 30])
+            for i,value in enumerate(init_values):
+                if value_list[i] == None or len(value_list[i]) < 1:
+                    value_list[i] = value
+            return np.double(value_list)
+        
+        value_list = get_values_list([FEED_TEMPERATURE, DISTILLATE_AQ_T, DISTILLATE_TK, BOTTOM_AQ_T, BOTTOM_TK])        
+        FEED_TEMPERATURE = value_list[0]
+        DISTILLATE_AQ_T = value_list[1]
+        DISTILLATE_TK = value_list[2]
+        BOTTOM_AQ_T = value_list[3] 
+        BOTTOM_TK = value_list[4]
+        
+        heater = eq.calculate_equipment(
+            heaters_table,
+            aqua_vapor_saturation_by_pressure,
+            aqua_liquid_saturation,
+            aqua_vapor_saturation,
+            balance,
+            properties,
+            FEED_TEMPERATURE,
+            thermal_balance,
+            Ropt,
+            EQ_NAME = 'подогреватель',
+            ORIENTACION = HEATER_ORIENTACION, 
+            AQ_PRESSURE = int(*HEATER_AQ_PRESSURE))
+        heater_figure = px.imshow(
+            round(heater),
+            labels=dict(x="Длина труб", y="Хараеткристики теплообменника", color=" %"),
+            range_color=[-40,80],
+            color_continuous_scale=["rgb(178, 50, 34)", "rgb(34, 149, 34)", "rgb(25, 65, 225)"],
+            x=heater.columns,
+            y=heater.index,
+            text_auto=True, aspect="auto",
+            #width=500,
+            height=1000
+                    )
+
+        evaporator = eq.calculate_equipment(
+            evaporator_table,
+            aqua_vapor_saturation_by_pressure,
+            aqua_liquid_saturation,
+            aqua_vapor_saturation,
+            balance,
+            properties,
+            FEED_TEMPERATURE,
+            thermal_balance,
+            Ropt,
+            EQ_NAME = 'испаритель',
+            AQ_PRESSURE = int(*EVAPORATOR_AQ_PRESSURE))
+        evaporator_figure = px.imshow(
+            round(evaporator),
+            labels=dict(x="Длина труб", y="Хараеткристики теплообменника", color=" %"),
+            range_color=[-40,80],
+            color_continuous_scale=["rgb(178, 50, 34)", "rgb(34, 149, 34)", "rgb(25, 65, 225)"],
+            x=evaporator.columns,
+            y=evaporator.index,
+            text_auto=True, aspect="auto",
+            #width=500,
+            height=1000
+                    )
+        
+        capacitor = eq.calculate_equipment(
+            heaters_table,
+            aqua_vapor_saturation_by_pressure,
+            aqua_liquid_saturation,
+            aqua_vapor_saturation,
+            balance,
+            properties,
+            FEED_TEMPERATURE,
+            thermal_balance,
+            Ropt,
+            EQ_NAME = 'дефлегматор',
+            ORIENTACION=CAPACITOR_ORIENTACION,
+            Tn=CAPACITOR_T[0],
+            Tk=CAPACITOR_T[1]
+            )
+        capacitor_figure = px.imshow(
+            round(capacitor),
+            labels=dict(x="Длина труб", y="Хараеткристики теплообменника", color=" %"),
+            range_color=[-40,80],
+            color_continuous_scale=["rgb(178, 50, 34)", "rgb(34, 149, 34)", "rgb(25, 65, 225)"],
+            x=capacitor.columns,
+            y=capacitor.index,
+            text_auto=True, aspect="auto",
+            #width=500,
+            height=1000
+            )
+    
+        distillate_cooler = eq.calculate_equipment(
+            heaters_table,
+            aqua_vapor_saturation_by_pressure,
+            aqua_liquid_saturation,
+            aqua_vapor_saturation,
+            balance,
+            properties,
+            FEED_TEMPERATURE,
+            thermal_balance,
+            Ropt,
+            EQ_NAME = 'холодильник',
+            COOLER_NAME = 'дистиллята',
+            pipes = DISTILLATE_PIPES,
+            aq_t = DISTILLATE_AQ_T, 
+            tk = DISTILLATE_TK
+            )
+        distillate_cooler_figure = px.imshow(
+            round(distillate_cooler),
+            labels=dict(x="Длина труб", y="Хараеткристики теплообменника", color=" %"),
+            range_color=[-40,80],
+            color_continuous_scale=["rgb(178, 50, 34)", "rgb(34, 149, 34)", "rgb(25, 65, 225)"],
+            x=distillate_cooler.columns,
+            y=distillate_cooler.index,
+            text_auto=True, aspect="auto",
+            #width=500,
+            height=1000
+            )
+        
+        bottom_cooler = eq.calculate_equipment(
+            heaters_table,
+            aqua_vapor_saturation_by_pressure,
+            aqua_liquid_saturation,
+            aqua_vapor_saturation,
+            balance,
+            properties,
+            FEED_TEMPERATURE,
+            thermal_balance,
+            Ropt,
+            EQ_NAME = 'холодильник',
+            COOLER_NAME = 'куба',
+            pipes = BOTTOM_PIPES, #изменяемый параметр может быть 'вода'
+            aq_t = BOTTOM_AQ_T, #изменяемый параметр
+            tk = BOTTOM_TK #изменяемый параметр
+            )
+        bottom_cooler_figure = px.imshow(
+            round(bottom_cooler),
+            labels=dict(x="Длина труб", y="Хараеткристики теплообменника", color="%"),
+            range_color=[-40,80],
+            color_continuous_scale=["rgb(178, 50, 34)", "rgb(34, 149, 34)", "rgb(25, 65, 225)"],
+            x=bottom_cooler.columns,
+            y=bottom_cooler.index,
+            text_auto=True, aspect="auto",
+            #width=500,
+            height=1000
+            )
+        
+        return (heater_figure,
+                evaporator_figure,
+                capacitor_figure,
+                distillate_cooler_figure,
+                bottom_cooler_figure)
+        
+@app.callback(
+    Output(component_id='heater-table', component_property='children'),
+    [State("FEED-TEMPERATURE", "value"),
+     Input("heater-radioitems", "value"),
+     Input('heater-pressure-slider', "value"),
+     Input("heaters-dropdown", "value"),
+     Input("heaters-pipes-dropdown", "value"),
+     ]
+)
+def create_heater_table(FEED_TEMPERATURE, HEATER_ORIENTACION, HEATER_AQ_PRESSURE, HEATER_MODEL, PIPES):
+    global balance
+    global properties
+    global Ropt
+    
+    def get_values_list(value_list):
+            init_values = np.double([20])
+            for i,value in enumerate(init_values):
+                if value_list[i] == None or len(value_list[i]) < 1:
+                    value_list[i] = value
+            return np.double(value_list)
+        
+    value_list = get_values_list([FEED_TEMPERATURE])
+    FEED_TEMPERATURE = value_list[0]
+    
+    row = heaters_table[heaters_table[heaters_table.columns[3]] == int(HEATER_MODEL.split()[3])].squeeze()
+    if len(row) > 1 and len(row) < 14:
+        row = row[row[row.columns[0]] == int(HEATER_MODEL.split()[0])].squeeze()
+    
+    if row[PIPES] == '—':
+        return
+    heater = eq.get_heater(row,
+        PIPES,
+        aqua_vapor_saturation_by_pressure,
+        aqua_liquid_saturation,
+        aqua_vapor_saturation,
+        balance, properties,
+        FEED_TEMPERATURE,
+        Ropt,
+        ORIENTACION=HEATER_ORIENTACION,
+        AQ_PRESSURE=int(*HEATER_AQ_PRESSURE), 
+        call='app')
+    
+    return dbc.Table.from_dataframe(heater, index=True, header=False)
+
+@app.callback(
+    Output(component_id='evaporator-table', component_property='children'),
+    [Input('evaporator-pressure-slider', "value"),     
+     Input("evaporators-dropdown", "value"),
+     Input("evaporators-pipes-dropdown", "value"),
+     ]
+)
+def create_evaporator_table(EVAPOREATOR_AQ_PRESSURE, EVAPORATOR_MODEL, PIPES):
+    global properties
+    global thermal_balance
+    
+    row = evaporator_table[evaporator_table[evaporator_table.columns[3]] == int(EVAPORATOR_MODEL.split()[3])].squeeze()
+    if row[PIPES] == '—':
+        return
+        
+    evaporator = eq.get_evaporator(row,
+            int(PIPES),                  
+            aqua_vapor_saturation_by_pressure, 
+            aqua_liquid_saturation,
+            aqua_vapor_saturation,
+            properties,
+            thermal_balance,
+            AQ_PRESSURE = int(*EVAPOREATOR_AQ_PRESSURE),
+            call = 'direct')
+    
+    return dbc.Table.from_dataframe(evaporator, index=True, header=False)
+
+@app.callback(
+    Output(component_id='capacitor-table', component_property='children'),
+    [Input("capacitor-radioitems", "value"),
+     Input('capacitor-t-slider', "value"),
+     Input("capacitors-dropdown", "value"),
+     Input("capacitors-pipes-dropdown", "value"),
+     ]
+)
+def create_capacitor_table(CAPACITOR_ORIENTACION, CAPACITOR_T, CAPACITOR_MODEL, PIPES):
+    global balance
+    global Ropt
+    global properties
+    
+    row = heaters_table[heaters_table[heaters_table.columns[3]] == int(CAPACITOR_MODEL.split()[3])].squeeze()
+    if len(row) > 1 and len(row) < 14:
+        row = row[row[row.columns[0]] == int(CAPACITOR_MODEL.split()[0])].squeeze()
+        
+    if row[PIPES] == '—':
+        return
+    
+    capacitor = eq.get_capacitor(
+        row,
+        PIPES,        
+        aqua_liquid_saturation,        
+        thermal_balance,
+        balance,
+        properties,        
+        Ropt,
+        Tn=CAPACITOR_T[0],
+        Tk=CAPACITOR_T[1],
+        ORIENTACION = CAPACITOR_ORIENTACION,
+        call = 'direct')
+    
+    return dbc.Table.from_dataframe(capacitor, index=True, header=False)
+
+@app.callback(
+    Output(component_id='bottom-cooler-table', component_property='children'),
+    [Input("bottom-cooler-radioitems", "value"),
+     Input("bottom-cooler-aq-t", "value"),
+     Input("bottom-cooler-tk", "value"),
+     Input("bottom-coolers-dropdown", "value"),
+     Input("bottom-coolers-pipes-dropdown", "value"),
+     ]
+)
+def create_bottom_cooler_table(BOTTOM_PIPES, BOTTOM_AQ_T, BOTTOM_TK, BOTTOM_MODEL, PIPES):
+    global balance
+    global properties    
+    
+    def get_values_list(value_list):
+            init_values = np.double([20, 30])
+            for i,value in enumerate(init_values):
+                if value_list[i] == None or len(value_list[i]) < 1:
+                    value_list[i] = value
+            return np.double(value_list)
+        
+    value_list = get_values_list([BOTTOM_AQ_T, BOTTOM_TK])
+    BOTTOM_AQ_T = value_list[0]
+    BOTTOM_TK = value_list[1]
+    
+    row = heaters_table[heaters_table[heaters_table.columns[3]] == int(BOTTOM_MODEL.split()[3])].squeeze()
+    if len(row) > 1 and len(row) < 14:
+        row = row[row[row.columns[0]] == int(BOTTOM_MODEL.split()[0])].squeeze()
+    
+    bottom_cooler = eq.get_cooler(
+        row,
+        PIPES,
+        aqua_liquid_saturation,
+        aqua_vapor_saturation,
+        properties,
+        balance,
+        COOLER_NAME = 'куба',
+        pipes = BOTTOM_PIPES,
+        aq_t = int(BOTTOM_AQ_T),
+        tk = int(BOTTOM_TK),
+        call = 'direct')
+    
+    return dbc.Table.from_dataframe(bottom_cooler, index=True, header=False)
+
+@app.callback(
+    Output(component_id='distillate-cooler-table', component_property='children'),
+    [Input("distillate-cooler-radioitems", "value"),
+     Input("distillate-cooler-aq-t", "value"),
+     Input("distillate-cooler-tk", "value"),
+     Input("distillate-coolers-dropdown", "value"),
+     Input("distillate-coolers-pipes-dropdown", "value"),
+     ]
+)
+def create_distillate_cooler_table(DISTILLATE_PIPES, DISTILLATE_AQ_T, DISTILLATE_TK, DISTILLATE_MODEL, PIPES):
+    global balance
+    global properties    
+    
+    def get_values_list(value_list):
+            init_values = np.double([20, 30])
+            for i,value in enumerate(init_values):
+                if value_list[i] == None or len(value_list[i]) < 1:
+                    value_list[i] = value
+            return np.double(value_list)
+        
+    value_list = get_values_list([DISTILLATE_AQ_T, DISTILLATE_TK])
+    DISTILLATE_AQ_T = value_list[0]
+    DISTILLATE_TK = value_list[1]
+    
+    row = heaters_table[heaters_table[heaters_table.columns[3]] == int(DISTILLATE_MODEL.split()[3])].squeeze()
+    if len(row) > 1 and len(row) < 14:
+        row = row[row[row.columns[0]] == int(DISTILLATE_MODEL.split()[0])].squeeze()
+    
+    distillate_cooler = eq.get_cooler(
+        row,
+        PIPES,
+        aqua_liquid_saturation,
+        aqua_vapor_saturation,
+        properties,
+        balance,
+        COOLER_NAME = 'дистиллята',
+        pipes = DISTILLATE_PIPES,
+        aq_t = int(DISTILLATE_AQ_T),
+        tk = int(DISTILLATE_TK),
+        call = 'direct')
+    
+    return dbc.Table.from_dataframe(distillate_cooler, index=True, header=False)
+    
+    
