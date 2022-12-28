@@ -217,10 +217,10 @@ ropt_slider = html.Div([
     dcc.RangeSlider(5, 30, 1, value=[20], id='plate-ropt-range-slider')
 ])
 heater_slider = html.Div([
-    dcc.RangeSlider(1, 15, 1, value=[3], id='plate-heater-pressure-slider')
+    dcc.RangeSlider(1, 12, 1, value=[3], id='plate-heater-pressure-slider')
 ])
 evaporator_slider = html.Div([    
-    dcc.RangeSlider(1, 15, 1, value=[3], id='plate-evaporator-pressure-slider')
+    dcc.RangeSlider(1, 12, 1, value=[3], id='plate-evaporator-pressure-slider')
 ])
 capacitor_slider = html.Div([
     dcc.RangeSlider(10, 50, 5, value=[20,30], id='plate-capacitor-t-slider')
@@ -327,9 +327,9 @@ plate_layout = html.Div([
     dbc.Row([dbc.Col([html.Div(id='plate-kinetic-table')])]),
     html.Hr(style={"margin-bottom":"20px"}),
     dbc.Row([dbc.Col([html.Div([heaters_button])], width={"size": 4, "offset": 4}, style={"margin-bottom":"20px"})]),
-    dbc.Row([dbc.Col([html.Div([heater_radioitems, heater_slider, dbc.Label("Давление теплоносителя(воды) в подогревателе"),]),
+    dbc.Row([dbc.Col([html.Div([heater_radioitems, heater_slider, dbc.Label("Давление водяного пара в подогревателе"),]),
                       dcc.Graph(id='plate-heater-figure')],width={"size": 4, "offset": 0}),
-             dbc.Col([html.Div([evaporator_slider, dbc.Label("Давление теплоносителя(воды) в испарителе")]),
+             dbc.Col([html.Div([evaporator_slider, dbc.Label("Давление водяного пара в испарителе")]),
                       dcc.Graph(id='plate-evaporator-figure')],width={"size": 4, "offset": 0}, style={"margin-top":"25px"}),
              dbc.Col([html.Div([capacitor_radioitems, capacitor_slider, dbc.Label("Температура воды на входе и выходе дефлегматора"),]),
                       dcc.Graph(id='plate-capacitor-figure')],width={"size": 4, "offset": 0})]),
@@ -499,15 +499,13 @@ def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, ROP
             diagram,
             Bt_range=BT_RANGE,
             plot_type='plotly')
-        
-        Ropt_fig, Ropt = clc.get_optimal_phlegm_number(R, Ngraf, plot_type='plotly')
-        Ropt_fig.update_layout(title_text='Определение рабочего флегмового числа', title_font_size=14, title_x=0.5)
                 
+        Ropt_fig, Ropt = clc.get_optimal_phlegm_number(R, Ngraf, plot_type='plotly')
+        
         if ROPT != None:
             if len(ROPT) > 0:
                 Ropt = np.double(ROPT)
         
-        Ropt_fig, Ropt = clc.get_optimal_phlegm_number(R, Ngraf, plot_type='plotly')
         properties = clc.calculate_properties(diagram, balance, Substance)
         diameter = clc.calculate_plate_diameter(balance, Ropt, properties)
         plate = clc.get_plate(diameter)

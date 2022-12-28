@@ -1,0 +1,7 @@
+meta:
+  environment: python
+  toolchain:
+    name: pip
+
+run:
+  scriptName: index.py
