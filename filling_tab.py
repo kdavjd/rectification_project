@@ -126,7 +126,7 @@ properties = clc.calculate_properties(diagram, balance, Substance)
 transfer_numbers_fig, bottom, top = clc.get_transfer_numbers(balance, Ropt, xy_diagram, plot_type='plotly')
 diameter = clc.calculate_diameter(balance, Ropt, properties, filling_name='50x50x5')
 
-height = clc.calculate_hight(
+height = clc.calculate_height(
     balance,
     properties,
     diameter,
@@ -141,6 +141,11 @@ height = clc.calculate_hight(
 thermal_balance = clc.calculate_thermal_balance(balance, properties, Ropt)
 
 #выпадающие списки, слайдеры
+diagram_sort_dropdown = dcc.Dropdown(
+    id='diagram-sort-dropdown',
+    options=['x', 'y', 't'],
+    value='t')
+
 properties_dropdown = dcc.Dropdown(
     id='properties-dropdown',
     options=[{'label':column, 'value':column} for column in properties.columns],
@@ -216,13 +221,19 @@ capacitor_slider = html.Div([
 ])
 
 #импуты, кнопки
-inputs = html.Div(
+a_component_input = html.Div([dbc.Input(id='a-component-input', placeholder="Название компонента А", size="sm")])
+b_component_input = html.Div([dbc.Input(id='b-component-input', placeholder="Название компонента Б", size="sm")])
+x_input = html.Div([dbc.Input(id='x-input', placeholder="жидкая фаза, sep=' '", size="sm")])
+y_input = html.Div([dbc.Input(id='y-input', placeholder="паровая фаза, sep=' '", size="sm")])
+t_input = html.Div([dbc.Input(id='t-input', placeholder="температура, sep=' '", size="sm")])
+
+calculation_inputs = html.Div(
     [html.Div('Исходные данные на проектирование'),
      dbc.Input(id='F', placeholder="производительность, кг/с", size="sm"),
      dbc.Input(id='FEED-TEMPERATURE', placeholder="температура смеси, °С", size="sm"),
-     dbc.Input(id='FEED', placeholder="доля ЛЛТ в исходной смеси", size="sm"),
-     dbc.Input(id='DISTILLATE', placeholder="доля ЛЛТ в дистилляте", size="sm"),
-     dbc.Input(id='BOTTOM', placeholder="доля ЛЛТ в кубе", size="sm"),
+     dbc.Input(id='FEED', placeholder="МАСС. доля ЛЛТ в исходной смеси", size="sm"),
+     dbc.Input(id='DISTILLATE', placeholder="МАСС. доля ЛЛТ в дистилляте", size="sm"),
+     dbc.Input(id='BOTTOM', placeholder="МАСС. доля ЛЛТ в кубе", size="sm"),
      dbc.Input(id='PRESSURE', placeholder="давление внутри колонны, Па (10**5)", size="sm"),
      dbc.Input(id='ROPT', placeholder="выберите флегмовое число число", size="sm"),
     ])
@@ -287,9 +298,17 @@ button = html.Div([dbc.Button("Выполнить расчет", size="lg", id='
 heaters_button = html.Div([dbc.Button("Подобрать кожухотрубчатые теплообменники", size="lg", id='heaters-button')])
 
 #фронт
-filling_layout = html.Div([    
+filling_layout = html.Div([
+    dbc.Row([dbc.Col([a_component_input], width=2),
+             dbc.Col([b_component_input], width=2),
+             dbc.Col([diagram_sort_dropdown], width=1),
+             dbc.Col([x_input], width=2),
+             dbc.Col([y_input], width=2),
+             dbc.Col([t_input], width=2),             
+             dbc.Col()],
+            style={"margin-top":"20px"}),    
     dbc.Row([dbc.Col([html.Div('Выберите бинарную смесь '),
-                      html.Div([diagrams_dropdown, inputs, filling_radioitems, html.Hr(), button])], width=3),
+                      html.Div([diagrams_dropdown, calculation_inputs, filling_radioitems, html.Hr(), button])], width=3),
              dbc.Col([html.Div(id='diagram-table')], width={"size": 2, "offset": 0}),
              dbc.Col([dcc.Graph(id='diagram-figure')])]),
     html.Hr(style={"margin-bottom":"20px"}),
@@ -347,15 +366,21 @@ filling_layout = html.Div([
     Output(component_id='properties-table', component_property='children'),
     Input(component_id='properties-dropdown', component_property='value')
 )
-def create_preperties_table(properties_list):
+def create_properties_table(properties_list):
     return dbc.Table.from_dataframe(round(properties[properties_list], 3), index=True)
 
 @app.callback(
-    Output(component_id='diagram-table', component_property='children'),
-    Output(component_id='diagram-figure', component_property='figure'),
-    Input(component_id='diagrams-dropdown', component_property='value')
+    Output('diagram-table', 'children'),
+    Output('diagram-figure', 'figure'),
+    Input('diagrams-dropdown', 'value'),
+    State('a-component-input', 'value'),
+    State('b-component-input', 'value'),
+    Input('diagram-sort-dropdown', 'value'),
+    State('x-input', 'value'),
+    State('y-input', 'value'),
+    State('t-input', 'value'),
 )
-def get_diagram(substances):
+def get_diagram(SUBSTANCE, A_COMPONENT, B_COMPONENT, SORT, LIQUID, VAPOR, TEMPERATURE):
     
     global diagram
     global Substance
@@ -363,22 +388,48 @@ def get_diagram(substances):
     def ends(df, x=5):
         return pd.concat([df.head(x), df.tail(x)])
     
-    path = 'l_v/'+substances+'.xlsx'
-    diagram = pd.read_excel(path)
+    #получаем черновик диаграмы
+    if (A_COMPONENT == None or len(A_COMPONENT) < 1) and (B_COMPONENT == None or len(B_COMPONENT) < 1):
+        path = 'l_v/'+SUBSTANCE+'.xlsx'
+        diagram = pd.read_excel(path)
 
-    if diagram['x'].values.max() > 1:
-        diagram['x'] = diagram['x']/100
+        if diagram['x'].values.max() > 1:
+            diagram['x'] = diagram['x']/100
+            
+        if diagram['y'].values.max() > 1:
+            diagram['y'] = diagram['y']/100
         
-    if diagram['y'].values.max() > 1:
-        diagram['y'] = diagram['y']/100
         
-    diagram.sort_values(by = ['t'], ascending=False,ignore_index=True, inplace=True)
-    
-    Substance = {'A':Сomponent(name=str(*ph_organic[ph_organic.formula == get_a_name(substances)].name.values)),
-                 'B':Сomponent(name=str(*ph_organic[ph_organic.formula == get_b_name(substances)].name.values))}
+        Substance = {'A':Сomponent(name=str(*ph_organic[ph_organic.formula == get_a_name(SUBSTANCE)].name.values)),
+                     'B':Сomponent(name=str(*ph_organic[ph_organic.formula == get_b_name(SUBSTANCE)].name.values))}
+        
+        if TEMPERATURE != None and len(TEMPERATURE) > 0:
+            tails = TEMPERATURE.split(sep=',')
+            for t in tails:
+                if t[0][0] == '-':
+                    diagram = pd.DataFrame(np.insert(diagram.values, 0, values=[0,0,t[1:]], axis=0), columns=['x','y','t'])
+                elif t[0][0] == '+':
+                    diagram = pd.DataFrame(np.insert(diagram.values, len(diagram), values=[1,1,t[1:]], axis=0), columns=['x','y','t'])
+                else:
+                    pass
+        diagram.sort_values(by = [SORT], ascending=True,ignore_index=True, inplace=True)
+        return (html.Div(dbc.Table.from_dataframe(df=round(ends(diagram),2), index=True)),
+                figures.plot_xy_diagram(diagram, get_a_name(SUBSTANCE), plot_type='plotly'))
+        
+    else:
+        diagram = pd.DataFrame({
+            'x':[float(val) for val in LIQUID.split(sep=' ')],
+            'y':[float(val) for val in VAPOR.split(sep=' ')],
+            't':[float(val) for val in TEMPERATURE.split(sep=' ')]
+        })
+        
+        diagram.sort_values(by = [SORT], ascending=True,ignore_index=True, inplace=True)
+        
+        Substance = {'A':Сomponent(name=A_COMPONENT),
+                     'B':Сomponent(name=B_COMPONENT)}
     
     return (html.Div(dbc.Table.from_dataframe(df=round(ends(diagram),2), index=True)),
-            figures.plot_xy_diagram(diagram, get_a_name(substances), plot_type='plotly'))
+            figures.plot_xy_diagram(diagram, get_a_name(A_COMPONENT), plot_type='plotly'))
     
 @app.callback(
     Output("balance-table", "children"),
@@ -403,6 +454,7 @@ def get_diagram(substances):
 def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, ROPT,
                     FILLING, BT_RANGE, BUTTON):
     
+    global diagram
     global balance        
     global Substance
     global xy_diagram
@@ -413,8 +465,7 @@ def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, ROP
     
     if BUTTON == 0:
         pass
-    else:
-        
+    else:        
         def get_values_list(value_list):
             init_values = np.double([5, 20, 0.35, 0.98, 0.017, 10**5])
             for i,value in enumerate(init_values):
@@ -463,7 +514,7 @@ def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, ROP
             title_x=0.5)
         
         diameter = clc.calculate_diameter(balance, Ropt, properties, filling_name=FILLING)
-        height = clc.calculate_hight(
+        height = clc.calculate_height(
             balance,
             properties,
             diameter,

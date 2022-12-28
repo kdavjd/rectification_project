@@ -101,14 +101,10 @@ class Calculations():
                             _x, W_line, x_, P_line, _)
             
             fig.update_layout(
-                autosize=False,
-                width=500,
-                height=500,
-                margin=dict(l=20, r=5, t=30, b=2),
+                autosize=True,
+                margin=dict(l=20, r=5, t=20, b=2),
                 showlegend=False,
-                plot_bgcolor='white',
-                title_text=f"N = {len(step)} высота колонны = {((len(step) - 1)*0.5+Zv+Zn)} метра",
-                title_x=0.5)
+                plot_bgcolor='white')
             
             return fig, pd.Series(
                 {'общее число действительных тарелок':len(step),
@@ -1193,7 +1189,7 @@ class Calculations():
         
         return diameter
     
-    def calculate_hight(balance, properties, diameter, xy_diagram, bottom, top, Substance, Ropt, PRESSURE, filling_name: str):
+    def calculate_height(balance, properties, diameter, xy_diagram, bottom, top, Substance, Ropt, PRESSURE, filling_name: str):
         
         filling = pd.DataFrame(columns = ['удельная поверхность','свободный объем','насыпная плотность'], dtype=float)
         filling.loc['25x25x3'] = [200, 0.74, 530]
