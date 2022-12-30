@@ -1,0 +1,36 @@
+## .gitignore
+## https://git-scm.com/docs/gitignore
+
+## IDE
+.idea/
+
+## VS Code
+.vscode/
+*.code-workspace
+.history/
+
+## node.js
+node_modules/
+
+## python
+venv/
+dist/
+build/
+.pip/
+.eggs/
+.tox/
+.pytest_cache/
+**/*.egg-info/
+**/__pycache__/
+*.py[cod]
+*.mo
+.coverage
+htmlcov/
+
+## .env files (use .env.dist as template)
+**/*.env
+
+## Preserve setup.py
+#/*.py
+#!setup.py
+
