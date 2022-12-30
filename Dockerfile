@@ -1,11 +1,17 @@
-FROM python
+# Dockerfile
+# https://docker.github.io/engine/reference/builder/
+
+FROM python:3.11
 
 WORKDIR /app
 
+COPY requirements.txt /app/requirements.txt
+
+RUN set -eux; \
+  pip install gunicorn \
+  pip install --no-deps -r /app/requirements.txt
+
 COPY . .
+COPY entrypoint.sh /opt/entrypoint.sh
 
-RUN pip install -r /app/requirements.txt
-
-EXPOSE 8050
-
-CMD ["python", "index.py"]
+CMD ["/opt/entrypoint.sh"]

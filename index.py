@@ -6,6 +6,8 @@ from filling_tab import filling_layout
 from plate_tab import plate_layout
 from table_tab import table_tab_layout
 
+server = app.server
+
 app_tabs = html.Div(
     [
         dbc.Tabs(
@@ -21,7 +23,8 @@ app_tabs = html.Div(
     ])
 
 app.layout = dbc.Container([
-    dbc.Row(dbc.Col(html.H1("Иллюстративный расчет ректификационной колонны", style={"textAlign": "center"}), width=12)),
+    dbc.Row(dbc.Col(html.H1("Иллюстративный расчет ректификационной колонны",
+                            style={"textAlign": "center"}), width=12)),
     html.Hr(),
     dbc.Row(dbc.Col(app_tabs, width=12)),
     html.Div(id='content', children=[])])
@@ -43,6 +46,5 @@ def switch_tab(tab_chosen):
     return html.P("???????")
 
 
-
-if __name__=='__main__':
+if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8050)
