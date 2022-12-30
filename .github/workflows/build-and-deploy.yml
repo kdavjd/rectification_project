@@ -1,0 +1,53 @@
+## .github/workflows/build-image.yml
+## https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+---
+
+name: Build and Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: "Build image"
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/kdavjd/rectification:latest
+
+  deploy:
+    needs: ["build"]
+    name: "Deploy image"
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: executing remote ssh command
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          docker-compose -f /opt/docker/rectification/docker-compose.yml pull
+          docker-compose -f /opt/docker/rectification/docker-compose.yml up -d
+          docker-compose -f /opt/docker/rectification/docker-compose.yml restart
