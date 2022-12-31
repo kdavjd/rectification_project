@@ -23,7 +23,7 @@ app_tabs = html.Div(
     ])
 
 app.layout = dbc.Container([
-    dbc.Row(dbc.Col(html.H2("Собрание инженерных работ и научных статей NuclearExistence",
+    dbc.Row(dbc.Col(html.H1("Собрание моих инженерных работ и научных статей",
                             style={"textAlign": "center"}), width=12)),
     html.Hr(),
     dbc.Row(dbc.Col(app_tabs, width=12)),
