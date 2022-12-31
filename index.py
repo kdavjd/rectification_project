@@ -23,7 +23,7 @@ app_tabs = html.Div(
     ])
 
 app.layout = dbc.Container([
-    dbc.Row(dbc.Col(html.H1("Иллюстративный расчет ректификационной колонны",
+    dbc.Row(dbc.Col(html.H2("Собрание инженерных работ и научных статей NuclearExistence",
                             style={"textAlign": "center"}), width=12)),
     html.Hr(),
     dbc.Row(dbc.Col(app_tabs, width=12)),
@@ -48,3 +48,4 @@ def switch_tab(tab_chosen):
 
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8050)
+    #app.run_server(debug=True)#, host='0.0.0.0', port=8050)
