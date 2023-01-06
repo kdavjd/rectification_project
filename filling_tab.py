@@ -299,6 +299,8 @@ heaters_button = html.Div([dbc.Button("Подобрать кожухотрубч
 
 #фронт
 filling_layout = html.Div([
+    dbc.Row(dbc.Col([html.H6('инструкция по ректификационным колоннам: https://youtu.be/17lcBitQxPI', style={"textAlign": "center"})])),
+    html.Hr(),
     dbc.Row([dbc.Col([a_component_input], width=2),
              dbc.Col([b_component_input], width=2),
              dbc.Col([diagram_sort_dropdown], width=1),
