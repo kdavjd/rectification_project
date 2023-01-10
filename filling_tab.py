@@ -76,6 +76,7 @@ def get_heaters_dropdown():
     heaters.index = heaters['name']
     heaters = heaters.drop('name', axis=1)
     return heaters.index, evaporator.index
+
 heaters_label, evaporators_label = get_heaters_dropdown()
 evaporators_label = list(filter(lambda x: x.split()[1] == '0.025' and x.split()[2] == '1',evaporators_label))
 pipes_names = ['1', '1.5', '2', '3', '4', '6', '9']
@@ -918,5 +919,3 @@ def create_distillate_cooler_table(DISTILLATE_PIPES, DISTILLATE_AQ_T, DISTILLATE
         call = 'direct')
     
     return dbc.Table.from_dataframe(distillate_cooler, index=True, header=False)
-    
-    

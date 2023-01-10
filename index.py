@@ -14,7 +14,7 @@ app_tabs = html.Div(
             [
                 dbc.Tab(label="Насадочная колонна", tab_id="tab-filling"),
                 dbc.Tab(label="Тарельчатая колонна", tab_id="tab-plate"),
-                dbc.Tab(label="Таблица веществ", tab_id="table-tab-plate"),
+                dbc.Tab(label="ФХ свойства веществ", tab_id="table-tab-plate"),
                 dbc.Tab(label="Other", tab_id="tab-other"),
             ],
             id="tabs",
