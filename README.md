@@ -3,6 +3,8 @@
 [![Build and Deploy](https://github.com/kdavjd/rectification_project/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/kdavjd/rectification_project/actions/workflows/build-and-deploy.yml)
 
 ---
+Сайт по которому доступно приложение.
+[nuclearexistence.ru](http://nuclearexistence.ru/)
 
 ## Оглавление
 

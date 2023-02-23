@@ -272,8 +272,8 @@ class Calculations():
         COOLER_NAME = 'дистиллята',
         aq_t = 20,
         tk = 30,
-        Tn=15,
-        Tk=30
+        Tn = 15,
+        Tk = 30
         ):
         
         def get_heater_index(row):

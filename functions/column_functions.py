@@ -11,6 +11,31 @@ from .data_functions import DataFunctions as dfc
 class Calculations():
     
     def get_plate_column_height(Ropt, balance, kinetic_frame, diagram, diameter, plot_type='matplotlib'):
+        """The function get_plate_column_height is used to calculate the height of a staircase-shaped plate column.
+        This function has the following inputs:
+
+            Ropt: a float value that represents the optimum value of the reduction ratio.
+            balance: a dictionary that contains balance information for the plate column.
+            kinetic_frame: a pandas DataFrame that contains information about the kinetic curve.
+            diagram: a pandas DataFrame that contains information about a diagram.
+            diameter: a float value that represents the diameter of the plate column.
+            plot_type (optional): a string value that determines the type of plot to be generated (default is 'matplotlib').
+            
+            The function first uses the get_coeffs method from the dfc module to calculate the coefficients of the kinematic diagram.
+            Then, it uses the get_fit method to get the x-y coordinate values of the kinematic diagram and the diagram.
+            Next, the function calculates the values of yf, xw, xf, and xp based on the balance information. 
+            It then defines a function biuld_phlegm_lines that returns the lines calculated from the values of _x, _y, x_, and y_.
+
+            The main part of the function calculates the height of the staircase-shaped plate column. 
+            It does this by looping through the platform and step lists until step[-1] is less than or equal to xp. 
+            In each iteration, the bottom and top working lines are calculated using the biuld_phlegm_lines function. 
+            The roots of the bottom working line are calculated in the first loop, while the roots of the top working line are calculated in the second loop.
+            The values of the kinematic diagram evaluated at each platform value are appended to the step list.
+
+            Finally, the function calculates the values of the stair line along the x and y axes by unzipping the sort_corners list 
+            and plotting the stair line using the plot_type input.
+            The height of the staircase-shaped plate column is then calculated by subtracting the yf value from the height of the stair line.
+        """
         kinematic_diagram=dfc.get_coeffs(
             kinetic_frame['значение кинетической кривой'].index,
             kinetic_frame['значение кинетической кривой'].values)
@@ -42,30 +67,53 @@ class Calculations():
         step.append(np.poly1d(kinematic_diagram)(float(balance['xw'])))
         platform = []
 
+        # This code calculates the coordinates of the vertices of a staircase
+
+        # The main loop runs until step[-1] is less than or equal to yf
         while step[-1] <= yf:
+            # Calculates the bottom and top working lines
             bottom_work_line, top_work_line = biuld_phlegm_lines()
+            # Decreases the value of the bottom working line's second coefficient by the value of the last step
             bottom_work_line[1] = bottom_work_line[1] - step[-1]
+            # Calculates the roots of the bottom working line and appends them to the platform list
             platform.append(np.roots(bottom_work_line))
+            # Appends the value of the kinematic diagram evaluated at the last platform value to the step list
             step.append(np.poly1d(kinematic_diagram)(platform[-1]))
-            
+
+        # The inner loop runs until step[-1] is less than or equal to xp
         while step[-1] <= xp:
+            # Calculates the bottom and top working lines
             bottom_work_line, top_work_line = biuld_phlegm_lines()
+            # Decreases the value of the top working line's second coefficient by the value of the last step
             top_work_line[1] = top_work_line[1] - step[-1]
+            # Calculates the roots of the top working line and appends them to the platform list
             platform.append(np.roots(top_work_line))
+            # Appends the value of the kinematic diagram evaluated at the last platform value to the step list
             step.append(np.poly1d(kinematic_diagram)(platform[-1]))
-            
-        if step[-1] > xp:        
-            platform = [float(xw)] + platform 
-            outside_corners = list(zip(platform,step)) #Получаем координаты вершин внешних углов лестницы
+
+        # If step[-1] is greater than xp
+        if step[-1] > xp:
+            # Adds the value of xw to the start of the platform list
+            platform = [float(xw)] + platform
+            # Calculates the coordinates of the outer corners of the staircase by zipping the platform and step lists
+            outside_corners = list(zip(platform, step))
+            # Removes the first element from the platform list
             platform = platform[1::]
-            inside_corners = list(zip(platform,step)) #Получаем координаты вершин внутренних углов лестницы
-            stair = list(zip(outside_corners,inside_corners)) 
+            # Calculates the coordinates of the inner corners of the staircase by zipping the platform and step lists
+            inside_corners = list(zip(platform, step))
+            # Calculates the staircase line by zipping the outside and inside corners lists
+            stair = list(zip(outside_corners, inside_corners))
+            # Initializes an empty sort_corners list
             sort_corners = []
-            for x,y in stair:
+            # Loops through the stair list, adding the values of each x,y tuple to the sort_corners list
+            for x, y in stair:
                 sort_corners.append(x)
                 sort_corners.append(y)
-            stair_line_x,stair_line_y = zip(*sort_corners) #Получаем значения ломаной линии по абсцисе и ординате
+            # Calculates the values of the stair line along the x and y axes by unzipping the sort_corners list
+            stair_line_x, stair_line_y = zip(*sort_corners)
+            # Sets the W line coordinates
             W_line = xw, yf
+            # Sets the P line coordinates
             P_line = yf, xp
             
             if diameter['стандартный размер обечайки'] <= 1:
@@ -97,8 +145,12 @@ class Calculations():
         
         if plot_type=='plotly':
             
-            fig = Figures.plot_plate_column_height(stair_line_x, stair_line_y, diagram, diagram_xy, kinetic_frame, kinetic_xy,
-                            _x, W_line, x_, P_line, _)
+            fig = Figures.plot_plate_column_height(
+                stair_line_x, stair_line_y, 
+                diagram, diagram_xy, 
+                kinetic_frame, kinetic_xy,
+                _x, W_line, 
+                x_, P_line, _)
             
             fig.update_layout(
                 autosize=True,
@@ -110,7 +162,38 @@ class Calculations():
                 {'общее число действительных тарелок':len(step),
                  'высота колонны':((len(step) - 1)*0.5+Zv+Zn)})
     
-    def calculate_kinetic_slice(x, xy_diagram, plate_coeffs, balance, properties, plate, Ropt, diameter):
+    def calculate_kinetic_slice(
+        x, xy_diagram, plate_coeffs, balance, properties, plate, Ropt, diameter):
+        """It calculates kinetic slice for a distillation plate by performing several operations.
+
+            It has the following parameters:
+
+            x: Unknown
+            xy_diagram: A polynomial function represented as an array of coefficients.
+            plate_coeffs: A dictionary containing coefficients related to the distillation plate.
+            balance: Unknown
+            properties: A dictionary containing properties related to the distillation process such as density and viscosity of liquid and vapor.
+            plate: A dictionary containing information about the distillation plate.
+            Ropt: Optimal reflux ratio.
+            diameter: A dictionary containing the diameter of the distillation column.
+            
+            The function starts with defining a function "tg" to find the derivative of a function. 
+            The derivative is found by computing the tangent of the angle of inclination of the tangent to the function.
+            Then there is a function "mass_transfer_factor" to calculate the mass transfer factor. 
+            The calculation is done based on the derivative of the equilibrium curve and the Ropt value.
+            The "bypass_fraction" function calculates the bypass fraction. 
+            The calculation is based on the steam velocity and the density of the steam in the lower or upper part of the column.
+            The "mixing_cells" function calculates the number of mixing cells in the distillation column.
+            It is based on the diameter of the column and a constant value of 0.35.
+            The "liquid_entrainment" function calculates the liquid entrainment. 
+            It takes the location (either upper or lower part of the column) as an input and returns the calculated entrainment value.
+            The calculation is based on various properties such as density and viscosity of the liquid and vapor, 
+            and the diameter of the distillation column.
+
+            In summary, this function calculates the kinetic slice for a distillation plate 
+            by performing several calculations based on various inputs such as
+            polynomial functions, properties of the distillation process, and information about the distillation column.
+            """
         
         #найдем производную функции как тангенс угла наклона касательной к функции
         def tg(x, dx=0.01):
@@ -126,9 +209,12 @@ class Calculations():
         def bypass_fraction(loc = 'низа'):
             nonlocal properties
             nonlocal plate 
-            Fs = plate['скорость пара в рабочем сечении тарелки'] * properties['плотность пара'][loc]**0.5
+            Fs = (plate['скорость пара в рабочем сечении тарелки']
+                  *properties['плотность пара'][loc]**0.5)
+            
             O = dfc.get_coeffs([1, 1.5, 2, 2.5, 3],
                                [0.1, 0.1, 0.1, 0.15, 0.2])
+            
             return np.polyval(O, Fs)
         
         #подробно в [1] стр 241-242
@@ -143,19 +229,22 @@ class Calculations():
             nonlocal diameter
             nonlocal plate_coeffs
             nonlocal plate
-            e = dfc.get_coeffs([0.7, 0.8, 1.5, 2, 3, 4, 6, 10],
-                            [1e-3, 1e-2, 0.8e-1, 0.9e-1, 1.2e-1, 1.3e-1, 1.4e-1, 1.5e-1])
+            e = dfc.get_coeffs(
+                [0.7, 0.8, 1.5, 2, 3, 4, 6, 10],
+                [1e-3, 1e-2, 0.8e-1, 0.9e-1, 1.2e-1, 1.3e-1, 1.4e-1, 1.5e-1])
             
             if loc == 'верха' or loc != 'низа':
                 m = (
                     1.15/1000
                     *((properties['поверхностное натяжение жидкости']['верха']/1000)
                     /properties['плотность пара']['верха'])**0.295 
-                    *((properties['плотность жидкости']['верха']-properties['плотность пара']['верха'])
+                    *((properties['плотность жидкости']['верха']
+                       -properties['плотность пара']['верха'])
                     /(properties['вязкость пара']['верха']/1000))**0.425)
 
                 H = 0.3 if diameter['стандартный размер обечайки'] < 1.2 else 0.5
-                hp =  plate_coeffs['высота светлого слоя жидкости верха']/(1 - plate_coeffs['паросодержание барботажного слоя верха'])
+                hp =  (plate_coeffs['высота светлого слоя жидкости верха']
+                       /(1 - plate_coeffs['паросодержание барботажного слоя верха']))
                 Hc = H - hp
                 return np.polyval(e, plate['скорость пара в рабочем сечении тарелки']/m/Hc)
                 
@@ -164,11 +253,14 @@ class Calculations():
                     1.15/1000
                     *((properties['поверхностное натяжение жидкости']['низа']/1000)
                     /properties['плотность пара']['низа'])**0.295 
-                    *((properties['плотность жидкости']['низа']-properties['плотность пара']['низа'])
+                    *((properties['плотность жидкости']['низа']
+                       -properties['плотность пара']['низа'])
                     /(properties['вязкость пара']['низа']/1000))**0.425)
 
                 H = 0.3 if diameter['стандартный размер обечайки'] < 1.2 else 0.5
-                hp =  plate_coeffs['высота светлого слоя жидкости низа'] / (1 - plate_coeffs['паросодержание барботажного слоя низа'])
+                hp =  (plate_coeffs['высота светлого слоя жидкости низа']
+                       /(1 - plate_coeffs['паросодержание барботажного слоя низа']))
+                
                 Hc = H - hp
                 return np.polyval(e, plate['скорость пара в рабочем сечении тарелки']/m/Hc)
             
@@ -203,13 +295,15 @@ class Calculations():
             values['общее число единиц переноса'] = (
                 values['коэффициент массопередачи']
                 *properties['молярная масса газа']['низа']
-                /(plate['скорость пара в рабочем сечении тарелки']*properties['плотность пара']['низа']))
+                /(plate['скорость пара в рабочем сечении тарелки']
+                  *properties['плотность пара']['низа']))
             
             values['локальная эффективность по пару'] = 1 - np.exp(-values['общее число единиц переноса'])
             
             values['B'] = (
                 mass_transfer_factor()
-                *(values['локальная эффективность по пару']+liquid_entrainment(loc='низа')/tg(x))
+                *(values['локальная эффективность по пару']+
+                  liquid_entrainment(loc='низа')/tg(x))
                 /(1-bypass_fraction(loc='низа'))
                 /(1+liquid_entrainment(loc='низа')/tg(x)*mass_transfer_factor()))
             
@@ -228,7 +322,8 @@ class Calculations():
                 /(1+liquid_entrainment(loc='низа')*mass_transfer_factor()*values["Мёрфи 1"]
                 /(tg(x)*(1-bypass_fraction(loc='низа')))))
             
-            values['значение кинетической кривой'] = get_kinetic_y(x, values['эффективность по Мёрфи'], loc='низа')
+            values['значение кинетической кривой'] = (
+                get_kinetic_y(x, values['эффективность по Мёрфи'], loc='низа'))
             
         else:
             
@@ -241,13 +336,15 @@ class Calculations():
             values['общее число единиц переноса'] = (
                 values['коэффициент массопередачи']
                 *properties['молярная масса газа']['верха']
-                /(plate['скорость пара в рабочем сечении тарелки']*properties['плотность пара']['верха']))
+                /(plate['скорость пара в рабочем сечении тарелки']
+                  *properties['плотность пара']['верха']))
             
             values['локальная эффективность по пару'] = 1 - np.exp(-values['общее число единиц переноса'])
             
             values['B'] = (
                 mass_transfer_factor()
-                *(values['локальная эффективность по пару']+liquid_entrainment(loc='верха')/tg(x))
+                *(values['локальная эффективность по пару']
+                  +liquid_entrainment(loc='верха')/tg(x))
                 /(1-bypass_fraction(loc='верха'))
                 /(1+liquid_entrainment(loc='верха')/tg(x)*mass_transfer_factor()))
             
@@ -258,19 +355,24 @@ class Calculations():
             
             values["Мёрфи 1"] = (
                 values['Мёрфи 2']
-                /(1+mass_transfer_factor() * bypass_fraction(loc='верха') * values["Мёрфи 2"]
+                /(1+mass_transfer_factor() * bypass_fraction(loc='верха')
+                  *values["Мёрфи 2"]
                 /(1-bypass_fraction(loc='верха'))))
             
             values['эффективность по Мёрфи'] = (
                 values["Мёрфи 1"]
-                /(1+liquid_entrainment(loc='верха')*mass_transfer_factor()*values["Мёрфи 1"]
+                /(1+liquid_entrainment(loc='верха')*mass_transfer_factor()
+                  *values["Мёрфи 1"]
                 /(tg(x) * (1-bypass_fraction(loc='верха')))))
             
-            values['значение кинетической кривой'] = get_kinetic_y(x, values['эффективность по Мёрфи'], loc='верха')
+            values['значение кинетической кривой'] = (
+                get_kinetic_y(x, values['эффективность по Мёрфи'], loc='верха'))
                 
         return values
     
-    def get_plate_coeffs(aqua_liquid_saturation, diameter, plate, properties, Substance, PRESSURE):
+    def get_plate_coeffs(
+        aqua_liquid_saturation, diameter, plate, properties, Substance, PRESSURE):
+        
         bubble_layer = pd.Series(dtype=float)
 
         def get_water_interfacial_tension(temperature):
@@ -398,7 +500,8 @@ class Calculations():
                 *(1-bubble_layer['паросодержание барботажного слоя верха'])))**0.5
             *bubble_layer['высота светлого слоя жидкости верха']
             *(properties['вязкость пара']['верха']
-            /(properties['вязкость жидкости']['верха'] + properties['вязкость пара']['верха']))**0.5)
+            /(properties['вязкость жидкости']['верха']
+              +properties['вязкость пара']['верха']))**0.5)
         
         bubble_layer['коэффициент массоотдачи жидкости низа'] = (
             6.24*10**5 * bubble_layer['коэффициент диффузии жидкости низа']**0.5
@@ -407,23 +510,28 @@ class Calculations():
                 *(1-bubble_layer['паросодержание барботажного слоя низа'])))**0.5
             *bubble_layer['высота светлого слоя жидкости низа']
             *(properties['вязкость пара']['низа']
-            /(properties['вязкость жидкости']['низа'] + properties['вязкость пара']['низа']))**0.5)
+            /(properties['вязкость жидкости']['низа']
+              +properties['вязкость пара']['низа']))**0.5)
             
         bubble_layer['коэффициент массоотдачи пара верха'] = (
             6.24*10**5 * bubble_layer['коэффициент диффузии пара верха']**0.5
             *plate['относительное свободное сечение тарелки']/100
-            *(plate['скорость пара в рабочем сечении тарелки']/bubble_layer['паросодержание барботажного слоя верха'])**0.5
+            *(plate['скорость пара в рабочем сечении тарелки']
+              /bubble_layer['паросодержание барботажного слоя верха'])**0.5
             *bubble_layer['высота светлого слоя жидкости верха']
             *(properties['вязкость пара']['верха']
-            /(properties['вязкость жидкости']['верха'] + properties['вязкость пара']['верха']))**0.5)
+            /(properties['вязкость жидкости']['верха']
+              +properties['вязкость пара']['верха']))**0.5)
         
         bubble_layer['коэффициент массоотдачи пара низа'] = (
             6.24*10**5 * bubble_layer['коэффициент диффузии пара низа']**0.5
             *plate['относительное свободное сечение тарелки']/100
-            *(plate['скорость пара в рабочем сечении тарелки']/bubble_layer['паросодержание барботажного слоя низа'])**0.5
+            *(plate['скорость пара в рабочем сечении тарелки']
+              /bubble_layer['паросодержание барботажного слоя низа'])**0.5
             *bubble_layer['высота светлого слоя жидкости низа']
             *(properties['вязкость пара']['низа']
-            /(properties['вязкость жидкости']['низа'] + properties['вязкость пара']['низа']))**0.5)
+            /(properties['вязкость жидкости']['низа']
+              +properties['вязкость пара']['низа']))**0.5)
         
         bubble_layer['коэффициент массоотдачи жидкости верха на кмоль'] = (
             bubble_layer['коэффициент массоотдачи жидкости верха']
@@ -448,6 +556,18 @@ class Calculations():
         return bubble_layer
     
     def get_plate(diameter, plate_type = 'ТС—Р'):
+        """The get_plate function performs the following actions:
+        
+            Reads an excel file with the technical specifications of sintered plates of type "ТС—Р" into a Pandas dataframe.
+            Creates an array called hole_list containing the values [3, 4, 5, 8].
+            Filters the dataframe to include only rows with a type of plate equal to plate_type and a diameter column equal to the diameter argument.
+            Creates a list free_section_list containing the maximum free section from the plate for each of the holes in the hole_list array.
+            Calculates the maximum vapor speed of the diameter argument and assigns it to the vapor_speed variable.
+            Calculates the vapor speed in the working section of the plate using the vapor_speed and plate area.
+            
+            Returns a Pandas series with the following columns: vapor speed in the working section of the plate, working section of the plate, 
+            plate type, relative free section of the plate, height of the overflow threshold, and width of the overflow threshold.
+            """
     
         table_plate = pd.read_excel('tables/Техническая характеристика ситчатых тарелок типа ТС.xlsx')
         hole_list=np.array([3,4,5,8])
@@ -459,8 +579,12 @@ class Calculations():
         free_section_list = np.array([float(str(*plate[hole].values)[0:str(*plate[hole].values).find('—')]) for hole in hole_list])
         free_section = free_section_list[free_section_list == free_section_list.max()][-1]
         
-        vapor_speed = np.array([diameter['скорость пара верха'], diameter['скорость пара низа']]).max()
-        vapor_section_speed = vapor_speed*0.785*diameter['стандартный размер обечайки']**2/plate['Рабочее сечение тарелки, м2'].values
+        vapor_speed = np.array(
+            [diameter['скорость пара верха'], diameter['скорость пара низа']]).max()
+        
+        vapor_section_speed = (
+            vapor_speed*0.785*diameter['стандартный размер обечайки']**2
+            /plate['Рабочее сечение тарелки, м2'].values)
         
         return pd.Series({'скорость пара в рабочем сечении тарелки':vapor_section_speed,
                         'рабочее сечение тарелки':plate['Рабочее сечение тарелки, м2'].values,
@@ -470,6 +594,15 @@ class Calculations():
                         'ширина переливного порога':plate['Периметр слива Lc, м'].values})
     
     def calculate_plate_diameter(balance, Ropt, properties, plate_type = 'ситчатая'):
+        """
+            The code defines a function calculate_plate_diameter that calculates the diameter of a plate in a distillation column.
+            It calculates the mass flow of liquid and gas at the top and bottom of the column,
+            and the speed of the gas based on whether the plate is sichataya or not. 
+            It then calculates the diameter of the plate at the top and bottom using the mass flow of gas,
+            speed of gas, and properties of the liquid and gas. The properties of the liquid and gas are passed to the function as a dictionary,
+            and the type of plate is set as a default to sichataya. The function returns a series of calculated diameters.
+            
+        """
         standart_list = np.array([0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.2, 2.6, 3.0])
         diameter = pd.Series(dtype = float)
         
@@ -530,8 +663,7 @@ class Calculations():
             *(diameter['диаметр низа']
               /diameter['стандартный размер обечайки'])**2)
 
-        return diameter
-    
+        return diameter    
     
     def material_balance(F, xf, xp, xw, diagram, Substance) -> pd.DataFrame:
         """Получает основные переменные материального баланса для дальнейших расчетов
@@ -558,9 +690,8 @@ class Calculations():
         balance['xp'] =(xp/balance['Ma'])/((xp/balance['Ma'])+((1-xp)/balance['Mb']))#Мольная доля легколетучего компонента в диистилляте
         balance['xw'] =(xw/balance['Ma'])/((xw/balance['Ma'])+((1-xw)/balance['Mb']))#Мольная доля легколетучего компонента в кубовом остатке
         balance['yf'] = np.poly1d(diagram)(balance['xf'])
-        balance['Rmin'] = (balance['xp'] - balance['yf'])/(balance['yf'] - balance['xf'])
-           
-                
+        balance['Rmin'] = ((balance['xp'] - balance['yf'])
+                           /(balance['yf'] - balance['xf']))
         
         return balance
 
@@ -584,7 +715,8 @@ class Calculations():
         return value
     
     
-    def get_range_phlegm_number(yf, xw, xf, xp, Rmin, xy_diagram, diagram, Bt_range: int, plot_type = 'matplotlib'):
+    def get_range_phlegm_number(
+        yf, xw, xf, xp, Rmin, xy_diagram, diagram, Bt_range: int, plot_type = 'matplotlib'):
         """Для поиска оптимального флегмового числа "Ropt" необходимо задаться "Bt_range", умножив "Rmin"
         на который, получают точку рабочего флегмового числа -"R". Для всех "R" находится новая "yf" и строится 
         линия рабочего флегмового числа по коодинатам (xw,yw)-(xf,yf) и (xf,yf)-(xp,yp).
@@ -637,7 +769,6 @@ class Calculations():
             fig = make_subplots(rows=int(np.ceil(Bt_range/5)), cols=5)#в одном ряду будет 5 графиков
         else:
             pass
-            
         
         def biuld_phlegm_lines(yf):
             _y = float(xw), float(yf)
@@ -679,8 +810,9 @@ class Calculations():
                 P_line = float(yf), float(xp)
                 
                 if plot_type == 'matplotlib' or plot_type == 'plotly':
-                    fig = Figures.plot_range_phlegm_number(fig, i, diagram, stair_line_x, stair_line_y, x_y, _x, x_,
-                                                           W_line, P_line, N, yf, R, plot_type)
+                    fig = Figures.plot_range_phlegm_number(
+                        fig, i, diagram, stair_line_x, stair_line_y, 
+                        x_y, _x, x_, W_line, P_line, N, yf, R, plot_type)
                 else:
                     pass
                 step = []
@@ -864,6 +996,16 @@ class Calculations():
         return slice
 
     def calculate_properties(diagram, balance, Substance):
+        """
+            This function calculates some properties of a substance based on a thermodynamic diagram and a balance.
+            It uses a subfunction slice_values which receives the liquid_fraction and balance as inputs and returns the liquid_fraction, 
+            vapor_fraction, temperature, Ma and Mb values. The calculate_properties function takes as inputs the diagram, balance,
+            and Substance and creates a data frame properties to store the results. 
+            The fraction_list variable is an array of 5 values which define the liquid, feed, and distillate fractions. 
+            The function then uses a for loop to iterate through the fraction_list and calls slice_values for each fraction. 
+            The results of each iteration are then concatenated to the properties data frame and given an index of 
+            'куба', 'низа','питания','верха','дистиллята'. The final properties data frame is returned as the output.            
+        """
         properties = pd.DataFrame(dtype=float)
 
         def slice_values(liquid_fraction, balance):
