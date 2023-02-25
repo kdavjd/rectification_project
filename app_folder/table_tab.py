@@ -4,8 +4,8 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
-from app import app
-from app_data import *
+from app_folder.app import app
+from app_folder.app_data import *
 
 properties_dict = {
     'Поверхностное натяжение':interfactial_tension_organic_liquid,

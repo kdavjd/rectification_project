@@ -4,14 +4,18 @@ import numpy as np
 import plotly.express as px
 from dash import html, dcc, Input, Output, State
 import dash_bootstrap_components as dbc
-from app import app
+from app_folder.app import app
 
-from app_data import *
+from app_folder.app_data import *
 from functions.column_functions import Calculations as clc
 from functions.column_functions import Figures as figures
 from functions.equipment_functions import Calculations as eq
 
+import warnings
+warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning) 
+
 #таблицы
+table_plate = pd.read_excel('tables/Техническая характеристика ситчатых тарелок типа ТС.xlsx')
 heaters_table = pd.read_excel('tables/Параметры кожухотрубчатых теплообменников и холодильников.xlsx',
                    header=[2])
 evaporator_table = pd.read_excel('tables/Параметры кожухотрубчатых испарителей и конденсаторов по ГОСТ15119-79 и ГОСТ 5121-79.xlsx',
@@ -76,7 +80,6 @@ def get_heaters_dropdown():
     heaters.index = heaters['name']
     heaters = heaters.drop('name', axis=1)
     return heaters.index, evaporator.index
-
 heaters_label, evaporators_label = get_heaters_dropdown()
 evaporators_label = list(filter(lambda x: x.split()[1] == '0.025' and x.split()[2] == '1',evaporators_label))
 pipes_names = ['1', '1.5', '2', '3', '4', '6', '9']
@@ -88,6 +91,18 @@ def get_a_name(name):
 def get_b_name(name):
     return name[name.find('-')+1:]
 
+def get_kinetic_frame(xy_diagram, plate_coeffs, balance, properties, plate, Ropt, diameter, X_RANGE):
+    
+    X_RANGE = 20
+
+    kinetic_frame = pd.DataFrame(dtype=float)
+    kinetic_list = np.linspace(balance['xw'], balance['xp'], X_RANGE)
+    for x in kinetic_list:
+        kinetic_slice = clc.calculate_kinetic_slice(x, xy_diagram, plate_coeffs, balance, properties, plate, Ropt, diameter)
+        kinetic_frame = pd.concat([kinetic_frame, kinetic_slice])
+
+    kinetic_frame.index = list(*np.round(kinetic_list, 2).T)
+    return kinetic_frame
 
 Substance = {'A':Сomponent(name='Толуол'), 'B':Сomponent(name='Тетрахлорметан')}
 diagram = pd.read_excel('l_v/C6H5CH3-CCl4.xlsx')
@@ -124,140 +139,118 @@ phlegm_number_fig, R, Ngraf = clc.get_range_phlegm_number(
 
 Ropt_fig, Ropt = clc.get_optimal_phlegm_number(R, Ngraf, plot_type='plotly')
 properties = clc.calculate_properties(diagram, balance, Substance)
-transfer_numbers_fig, bottom, top = clc.get_transfer_numbers(balance, Ropt, xy_diagram, plot_type='plotly')
-diameter = clc.calculate_diameter(balance, Ropt, properties, filling_name='50x50x5')
-
-height = clc.calculate_height(
-    balance,
-    properties,
-    diameter,
-    xy_diagram,
-    bottom,
-    top,
-    Substance,
-    Ropt,
-    PRESSURE,
-    filling_name='50x50x5')
-
+diameter = clc.calculate_plate_diameter(balance, Ropt, properties)
+plate = clc.get_plate(diameter)
+plate_coeffs = clc.get_plate_coeffs(aqua_liquid_saturation, diameter, plate, properties, Substance, PRESSURE)
+kinetic_frame = get_kinetic_frame(xy_diagram, plate_coeffs, balance, properties, plate, Ropt, diameter, 20)
+height_figure, height = clc.get_plate_column_height(Ropt, balance, kinetic_frame, diagram, diameter, plot_type='plotly')
 thermal_balance = clc.calculate_thermal_balance(balance, properties, Ropt)
 
 #выпадающие списки, слайдеры
 diagram_sort_dropdown = dcc.Dropdown(
-    id='diagram-sort-dropdown',
+    id='plate-diagram-sort-dropdown',
     options=['x', 'y', 't'],
     value='t')
 
 properties_dropdown = dcc.Dropdown(
-    id='properties-dropdown',
+    id='plate-properties-dropdown',
     options=[{'label':column, 'value':column} for column in properties.columns],
     value=list(properties.columns[0:6]),
     multi=True)
 
 diagrams_dropdown = dcc.Dropdown(
-    id='diagrams-dropdown',
+    id='plate-diagrams-dropdown',
     options=[{'label':label, 'value':value} for label,value in list(zip(diagrams_labels, diagrams_values))],
     value=diagrams_values[0])
 
 heaters_dropdown = dcc.Dropdown(
-    id='heaters-dropdown',
+    id='plate-heaters-dropdown',
     options=[{'label':value, 'value':value} for value in heaters_label],
     value=heaters_label[0])
 
 heaters_pipes_dropdown = dcc.Dropdown(
-    id='heaters-pipes-dropdown',
+    id='plate-heaters-pipes-dropdown',
     options=[{'label':value, 'value':value} for value in pipes_names],
     value=pipes_names[0])
 
 evaporators_dropdown = dcc.Dropdown(
-    id='evaporators-dropdown',
+    id='plate-evaporators-dropdown',
     options=[{'label':value, 'value':value} for value in evaporators_label],
     value=evaporators_label[0])
 
 evaporators_pipes_dropdown = dcc.Dropdown(
-    id='evaporators-pipes-dropdown',
+    id='plate-evaporators-pipes-dropdown',
     options=[{'label':value, 'value':value} for value in evaporator_pipes_names],
     value=evaporator_pipes_names[0])
 
 capacitors_dropdown = dcc.Dropdown(
-    id='capacitors-dropdown',
+    id='plate-capacitors-dropdown',
     options=[{'label':value, 'value':value} for value in heaters_label],
     value=heaters_label[0])
 
 capacitors_pipes_dropdown = dcc.Dropdown(
-    id='capacitors-pipes-dropdown',
+    id='plate-capacitors-pipes-dropdown',
     options=[{'label':value, 'value':value} for value in pipes_names],
     value=pipes_names[0])
 
 distillate_coolers_dropdown = dcc.Dropdown(
-    id='distillate-coolers-dropdown',
+    id='plate-distillate-coolers-dropdown',
     options=[{'label':value, 'value':value} for value in heaters_label],
     value=heaters_label[0])
 
 distillate_coolers_pipes_dropdown = dcc.Dropdown(
-    id='distillate-coolers-pipes-dropdown',
+    id='plate-distillate-coolers-pipes-dropdown',
     options=[{'label':value, 'value':value} for value in pipes_names],
     value=pipes_names[0])
 
 bottom_coolers_dropdown = dcc.Dropdown(
-    id='bottom-coolers-dropdown',
+    id='plate-bottom-coolers-dropdown',
     options=[{'label':value, 'value':value} for value in heaters_label],
     value=heaters_label[0])
 
 bottom_coolers_pipes_dropdown = dcc.Dropdown(
-    id='bottom-coolers-pipes-dropdown',
+    id='plate-bottom-coolers-pipes-dropdown',
     options=[{'label':value, 'value':value} for value in pipes_names],
     value=pipes_names[0])
 
 ropt_slider = html.Div([
-    dcc.RangeSlider(5, 30, 1, value=[20], id='ropt-range-slider')
+    dcc.RangeSlider(5, 30, 1, value=[20], id='plate-ropt-range-slider')
 ])
 heater_slider = html.Div([
-    dcc.RangeSlider(1, 12, 1, value=[3], id='heater-pressure-slider')
+    dcc.RangeSlider(1, 12, 1, value=[3], id='plate-heater-pressure-slider')
 ])
 evaporator_slider = html.Div([    
-    dcc.RangeSlider(1, 12, 1, value=[3], id='evaporator-pressure-slider')
+    dcc.RangeSlider(1, 12, 1, value=[3], id='plate-evaporator-pressure-slider')
 ])
 capacitor_slider = html.Div([
-    dcc.RangeSlider(10, 50, 5, value=[20,30], id='capacitor-t-slider')
+    dcc.RangeSlider(10, 50, 5, value=[20,30], id='plate-capacitor-t-slider')
 ])
 
 #импуты, кнопки
-a_component_input = html.Div([dbc.Input(id='a-component-input', placeholder="Название компонента А", size="sm")])
-b_component_input = html.Div([dbc.Input(id='b-component-input', placeholder="Название компонента Б", size="sm")])
-x_input = html.Div([dbc.Input(id='x-input', placeholder="жидкая фаза, sep=' '", size="sm")])
-y_input = html.Div([dbc.Input(id='y-input', placeholder="паровая фаза, sep=' '", size="sm")])
-t_input = html.Div([dbc.Input(id='t-input', placeholder="температура, sep=' '", size="sm")])
+a_component_input = html.Div([dbc.Input(id='plate-a-component-input', placeholder="Название компонента А", size="sm")])
+b_component_input = html.Div([dbc.Input(id='plate-b-component-input', placeholder="Название компонента Б", size="sm")])
+x_input = html.Div([dbc.Input(id='plate-x-input', placeholder="жидкая фаза, sep=' '", size="sm")])
+y_input = html.Div([dbc.Input(id='plate-y-input', placeholder="паровая фаза, sep=' '", size="sm")])
+t_input = html.Div([dbc.Input(id='plate-t-input', placeholder="температура, sep=' '", size="sm")])
 
 calculation_inputs = html.Div(
     [html.Div('Исходные данные на проектирование'),
-     dbc.Input(id='F', placeholder="производительность, кг/с", size="sm"),
-     dbc.Input(id='FEED-TEMPERATURE', placeholder="температура смеси, °С", size="sm"),
-     dbc.Input(id='FEED', placeholder="МАСС. доля ЛЛТ в исходной смеси", size="sm"),
-     dbc.Input(id='DISTILLATE', placeholder="МАСС. доля ЛЛТ в дистилляте", size="sm"),
-     dbc.Input(id='BOTTOM', placeholder="МАСС. доля ЛЛТ в кубе", size="sm"),
-     dbc.Input(id='PRESSURE', placeholder="давление внутри колонны, Па (10**5)", size="sm"),
-     dbc.Input(id='ROPT', placeholder="выберите флегмовое число число", size="sm"),
+     dbc.Input(id='plate-F', placeholder="производительность, кг/с", size="sm"),
+     dbc.Input(id='plate-FEED-TEMPERATURE', placeholder="температура смеси, °С", size="sm"),
+     dbc.Input(id='plate-FEED', placeholder="МАСС. доля ЛЛТ в исходной смеси", size="sm"),
+     dbc.Input(id='plate-DISTILLATE', placeholder="МАСС. доля ЛЛТ в дистилляте", size="sm"),
+     dbc.Input(id='plate-BOTTOM', placeholder="МАСС. доля ЛЛТ в кубе", size="sm"),
+     dbc.Input(id='plate-PRESSURE', placeholder="давление внутри колонны, Па (10**5)", size="sm"),
+     dbc.Input(id='plate-ROPT', placeholder="выберите флегмовое число число", size="sm"),
     ])
 
 distillate_cooler_inputs = html.Div(
-    [dbc.Input(id='distillate-cooler-aq-t', placeholder="температура воды на охлаждение ~5-20°С (по умолчанию 20)", size="sm"),
-     dbc.Input(id='distillate-cooler-tk', placeholder="до какой температуры охлаждать дистиллят, °С (по умолчанию 30)", size="sm")])
+    [dbc.Input(id='plate-distillate-cooler-aq-t', placeholder="температура воды на охлаждение ~5-20°С (по умолчанию 20)", size="sm"),
+     dbc.Input(id='plate-distillate-cooler-tk', placeholder="до какой температуры охлаждать дистиллят, °С (по умолчанию 30)", size="sm")])
 
 bottom_cooler_inputs = html.Div(
-    [dbc.Input(id='bottom-cooler-aq-t', placeholder="температура воды на охлаждение ~5-20°С (по умолчанию 20)", size="sm"),
-     dbc.Input(id='bottom-cooler-tk', placeholder="до какой температуры охлаждать кубовый остаток, °С (по умолчанию 30)", size="sm")])
-
-filling_radioitems = html.Div(
-    [dbc.Label("Выберите размер насадки"),
-     dbc.RadioItems(
-            options=[
-                {"label": "50x50x5", "value": '50x50x5'},
-                {"label": '35x35x4', "value": '35x35x4'},
-                {"label": '25x25x3', "value": '25x25x3'},
-            ],
-            value='50x50x5',
-            id="filling-input",
-            inline=True)])
+    [dbc.Input(id='plate-bottom-cooler-aq-t', placeholder="температура воды на охлаждение ~5-20°С (по умолчанию 20)", size="sm"),
+     dbc.Input(id='plate-bottom-cooler-tk', placeholder="до какой температуры охлаждать кубовый остаток, °С (по умолчанию 30)", size="sm")])
 
 heater_radioitems = html.Div(
     [dbc.RadioItems(
@@ -265,7 +258,7 @@ heater_radioitems = html.Div(
             {"label": 'вертикальный', "value": 'вертикальный'},
             {"label": 'горизонтальный', "value": 'горизонтальный'}],
         value='вертикальный',
-        id="heater-radioitems",
+        id="plate-heater-radioitems",
         inline=True )])
 
 capacitor_radioitems = html.Div(
@@ -274,7 +267,7 @@ capacitor_radioitems = html.Div(
             {"label": 'вертикальный', "value": 'вертикальный'},
             {"label": 'горизонтальный', "value": 'горизонтальный'}],
         value='вертикальный',
-        id="capacitor-radioitems",
+        id="plate-capacitor-radioitems",
         inline=True)])
 
 distillate_cooler_radioitems = html.Div(
@@ -283,7 +276,7 @@ distillate_cooler_radioitems = html.Div(
             {"label": 'продукт', "value": 'продукт'},
             {"label": 'вода', "value": 'вода'}],
         value='продукт',
-        id="distillate-cooler-radioitems",
+        id="plate-distillate-cooler-radioitems",
         inline=True)])
 
 bottom_cooler_radioitems = html.Div(
@@ -292,16 +285,14 @@ bottom_cooler_radioitems = html.Div(
             {"label": 'продукт', "value": 'продукт'},
             {"label": 'вода', "value": 'вода'}],
         value='продукт',
-        id="bottom-cooler-radioitems",
+        id="plate-bottom-cooler-radioitems",
         inline=True)])
 
-button = html.Div([dbc.Button("Выполнить расчет", size="lg", id='main-button')])
-heaters_button = html.Div([dbc.Button("Подобрать кожухотрубчатые теплообменники", size="lg", id='heaters-button')])
+button = html.Div([dbc.Button("Выполнить расчет", size="lg", id='plate-main-button')])
+heaters_button = html.Div([dbc.Button("Подобрать кожухотрубчатые теплообменники", size="lg", id='plate-heaters-button')])
 
 #фронт
-filling_layout = html.Div([
-    dbc.Row(dbc.Col([html.H6('инструкция по ректификационным колоннам: https://youtu.be/17lcBitQxPI', style={"textAlign": "center"})])),
-    html.Hr(),
+plate_layout = html.Div([
     dbc.Row([dbc.Col([a_component_input], width=2),
              dbc.Col([b_component_input], width=2),
              dbc.Col([diagram_sort_dropdown], width=1),
@@ -311,77 +302,81 @@ filling_layout = html.Div([
              dbc.Col()],
             style={"margin-top":"20px"}),    
     dbc.Row([dbc.Col([html.Div('Выберите бинарную смесь '),
-                      html.Div([diagrams_dropdown, calculation_inputs, filling_radioitems, html.Hr(), button])], width=3),
-             dbc.Col([html.Div(id='diagram-table')], width={"size": 2, "offset": 0}),
-             dbc.Col([dcc.Graph(id='diagram-figure')])]),
+                      html.Div([diagrams_dropdown, calculation_inputs, html.Hr(), button])], width=3),
+             dbc.Col([html.Div(id='plate-diagram-table')], width={"size": 2, "offset": 0}),
+             dbc.Col([dcc.Graph(id='plate-diagram-figure')])]),
     html.Hr(style={"margin-bottom":"20px"}),
-    dbc.Row([dbc.Col([html.Div(id='balance-table')], width={"size": 3, "offset": 0}),
+    dbc.Row([dbc.Col([html.Div(id='plate-balance-table')], width={"size": 3, "offset": 0}),
              dbc.Col([html.Div('Таблица обновится после выбора свойств'),
                       html.Div(properties_dropdown),
-                      html.Div(id='properties-table')], width=9)]),
+                      html.Div(id='plate-properties-table')], width=9)]),
     html.Hr(style={"margin-bottom":"20px"}),
     dbc.Row([dbc.Col([html.Div(ropt_slider, style={"margin-bottom":"20px"}),
-                      dcc.Graph(id='range-phlegm-number-figure')], width={"size": 10, "offset": 1})]),
+                      dcc.Graph(id='plate-range-phlegm-number-figure')], width={"size": 10, "offset": 1})]),
     html.Hr(style={"margin-bottom":"20px"}),
-    dbc.Row([dbc.Col([dcc.Graph(id='ropt-figure')], width={"size": 4, "offset": 0}),
-             dbc.Col([dcc.Graph(id='transfer-numbers-figure')], width={"size": 8, "offset": 0})]),
+    dbc.Row([dbc.Col([dcc.Graph(id='plate-ropt-figure')], width={"size": 4, "offset": 0}),
+             dbc.Col([dcc.Graph(id='plate-height-figure')], width={"size": 4, "offset": 0}),
+             dbc.Col([html.Div(id='plate-height-table'),
+                      html.Div(id='plate-model-table')], width={"size": 4, "offset": 0}),]),
     html.Hr(style={"margin-bottom":"20px"}),
-    dbc.Row([dbc.Col([html.Div(id='diameter-table'),
-                      html.Hr(style={"margin-bottom":"270px"}),
-                      html.Div(id='thermal-balance-table'),], width={"size": 5, "offset": 0}),
-             dbc.Col([html.Div(id='height-table')], width={"size": 6, "offset": 1})]),
+    dbc.Row([dbc.Col([html.Div(id='plate-diameter-table'),
+                      html.Hr(style={"margin-bottom":"190px"}),
+                      html.Div(id='plate-thermal-balance-table')], width={"size": 5, "offset": 0}),
+             dbc.Col([html.Div(id='plate-coeffs-table'),], width={"size": 6, "offset": 1})]),
+    html.Hr(style={"margin-bottom":"20px"}),
+    dbc.Row([dbc.Col([html.Div(id='plate-kinetic-table')])]),
     html.Hr(style={"margin-bottom":"20px"}),
     dbc.Row([dbc.Col([html.Div([heaters_button])], width={"size": 4, "offset": 4}, style={"margin-bottom":"20px"})]),
     dbc.Row([dbc.Col([html.Div([heater_radioitems, heater_slider, dbc.Label("Давление водяного пара в подогревателе"),]),
-                      dcc.Graph(id='heater-figure')],width={"size": 4, "offset": 0}),
+                      dcc.Graph(id='plate-heater-figure')],width={"size": 4, "offset": 0}),
              dbc.Col([html.Div([evaporator_slider, dbc.Label("Давление водяного пара в испарителе")]),
-                      dcc.Graph(id='evaporator-figure')],width={"size": 4, "offset": 0}, style={"margin-top":"25px"}),
+                      dcc.Graph(id='plate-evaporator-figure')],width={"size": 4, "offset": 0}, style={"margin-top":"25px"}),
              dbc.Col([html.Div([capacitor_radioitems, capacitor_slider, dbc.Label("Температура воды на входе и выходе дефлегматора"),]),
-                      dcc.Graph(id='capacitor-figure')],width={"size": 4, "offset": 0})]),
+                      dcc.Graph(id='plate-capacitor-figure')],width={"size": 4, "offset": 0})]),
     dbc.Row([dbc.Col([html.Div([heaters_dropdown])], width={"size": 3, "offset": 0}),
              dbc.Col([html.Div([heaters_pipes_dropdown])], width={"size": 1, "offset": 0}),
              dbc.Col([html.Div([evaporators_dropdown])], width={"size": 3, "offset": 0}),
              dbc.Col([html.Div([evaporators_pipes_dropdown])], width={"size": 1, "offset": 0}),
              dbc.Col([html.Div([capacitors_dropdown])], width={"size": 3, "offset": 0}),
              dbc.Col([html.Div([capacitors_pipes_dropdown])], width={"size": 1, "offset": 0}),]),
-    dbc.Row([dbc.Col([html.Div(id='heater-table')], width={"size": 4, "offset": 0}),
-             dbc.Col([html.Div(id='evaporator-table')], width={"size": 4, "offset": 0}),
-             dbc.Col([html.Div(id='capacitor-table')], width={"size": 4, "offset": 0}),]),
+    dbc.Row([dbc.Col([html.Div(id='plate-heater-table')], width={"size": 4, "offset": 0}),
+             dbc.Col([html.Div(id='plate-evaporator-table')], width={"size": 4, "offset": 0}),
+             dbc.Col([html.Div(id='plate-capacitor-table')], width={"size": 4, "offset": 0}),]),
     html.Hr(style={"margin-bottom":"20px"}),
     dbc.Row([dbc.Col([html.Div([dbc.Label("Холодильник дистиллята. В трубы можно пустить продукт или воду"),
                                 distillate_cooler_radioitems, distillate_cooler_inputs]),
-                      dcc.Graph(id='distillate-cooler-figure')],width={"size": 6, "offset": 0}),
+                      dcc.Graph(id='plate-distillate-cooler-figure')],width={"size": 6, "offset": 0}),
              dbc.Col([html.Div([dbc.Label("Холодильник кубового остатка. В трубы можно пустить продукт или воду"),
                                 bottom_cooler_radioitems, bottom_cooler_inputs]),
-                      dcc.Graph(id='bottom-cooler-figure')],width={"size": 6, "offset": 0})]),
+                      dcc.Graph(id='plate-bottom-cooler-figure')],width={"size": 6, "offset": 0})]),
     dbc.Row([dbc.Col([html.Div([distillate_coolers_dropdown])], width={"size": 5, "offset": 0}),
              dbc.Col([html.Div([distillate_coolers_pipes_dropdown])], width={"size": 1, "offset": 0}),
              dbc.Col([html.Div([bottom_coolers_dropdown])], width={"size": 5, "offset": 0}),
              dbc.Col([html.Div([bottom_coolers_pipes_dropdown])], width={"size": 1, "offset": 0})]),
-    dbc.Row([dbc.Col([html.Div(id='distillate-cooler-table')], width={"size": 6, "offset": 0}),
-             dbc.Col([html.Div(id='bottom-cooler-table')], width={"size": 6, "offset": 0})]),
+    dbc.Row([dbc.Col([html.Div(id='plate-distillate-cooler-table')], width={"size": 6, "offset": 0}),
+             dbc.Col([html.Div(id='plate-bottom-cooler-table')], width={"size": 6, "offset": 0})]),
     ],
     style={'margin-left': '10px',
            'margin-right': '10px'}
 )
 
 @app.callback(
-    Output(component_id='properties-table', component_property='children'),
-    Input(component_id='properties-dropdown', component_property='value')
+    Output(component_id='plate-properties-table', component_property='children'),
+    Input(component_id='plate-properties-dropdown', component_property='value')
 )
 def create_properties_table(properties_list):
     return dbc.Table.from_dataframe(round(properties[properties_list], 3), index=True)
 
 @app.callback(
-    Output('diagram-table', 'children'),
-    Output('diagram-figure', 'figure'),
-    Input('diagrams-dropdown', 'value'),
-    State('a-component-input', 'value'),
-    State('b-component-input', 'value'),
-    Input('diagram-sort-dropdown', 'value'),
-    State('x-input', 'value'),
-    State('y-input', 'value'),
-    State('t-input', 'value'),
+    Output('plate-diagram-table', 'children'),
+    Output('plate-diagram-figure', 'figure'),
+    Input('plate-diagrams-dropdown', 'value'),
+    State('plate-a-component-input', 'value'),
+    State('plate-b-component-input', 'value'),
+    Input('plate-diagram-sort-dropdown', 'value'),
+    State('plate-x-input', 'value'),
+    State('plate-y-input', 'value'),
+    State('plate-t-input', 'value'),
 )
 def get_diagram(SUBSTANCE, A_COMPONENT, B_COMPONENT, SORT, LIQUID, VAPOR, TEMPERATURE):
     
@@ -435,27 +430,29 @@ def get_diagram(SUBSTANCE, A_COMPONENT, B_COMPONENT, SORT, LIQUID, VAPOR, TEMPER
             figures.plot_xy_diagram(diagram, get_a_name(A_COMPONENT), plot_type='plotly'))
     
 @app.callback(
-    Output("balance-table", "children"),
-    Output("range-phlegm-number-figure", "figure"),
-    Output("ropt-figure", "figure"),
-    Output("transfer-numbers-figure", "figure"),
-    Output("diameter-table", "children"),
-    Output("height-table", "children"),
-    Output("thermal-balance-table", "children"),
-    [State("F", "value"),
-     State("FEED-TEMPERATURE", "value"),
-     State("FEED", "value"),
-     State("DISTILLATE", "value"),
-     State("BOTTOM", "value"),
-     State("PRESSURE", "value"),
-     State("ROPT", 'value'),
-     State("filling-input", 'value'),
-     State('ropt-range-slider','value'),
-     Input("main-button", "n_clicks"),
+    Output("plate-balance-table", "children"),
+    Output("plate-range-phlegm-number-figure", "figure"),
+    Output("plate-ropt-figure", "figure"),    
+    Output("plate-diameter-table", "children"),
+    Output("plate-height-table", "children"),
+    Output("plate-thermal-balance-table", "children"),
+    Output("plate-height-figure", "figure"),
+    Output("plate-model-table", "children"),
+    Output("plate-kinetic-table", "children"),
+    Output("plate-coeffs-table", "children"),
+    [State("plate-F", "value"),
+     State("plate-FEED-TEMPERATURE", "value"),
+     State("plate-FEED", "value"),
+     State("plate-DISTILLATE", "value"),
+     State("plate-BOTTOM", "value"),
+     State("plate-PRESSURE", "value"),
+     State("plate-ROPT", 'value'),     
+     State('plate-ropt-range-slider','value'),
+     Input("plate-main-button", "n_clicks"),
      ]
 )
 def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, ROPT,
-                    FILLING, BT_RANGE, BUTTON):
+                    BT_RANGE, BUTTON):
     
     global diagram
     global balance        
@@ -502,62 +499,52 @@ def on_button_click(F, FEED_TEMPERATURE, FEED, DISTILLATE, BOTTOM, PRESSURE, ROP
             diagram,
             Bt_range=BT_RANGE,
             plot_type='plotly')
-        
-        Ropt_fig, Ropt = clc.get_optimal_phlegm_number(R, Ngraf, plot_type='plotly')
-        Ropt_fig.update_layout(title_text='Определение рабочего флегмового числа', title_font_size=14, title_x=0.5)
                 
+        Ropt_fig, Ropt = clc.get_optimal_phlegm_number(R, Ngraf, plot_type='plotly')
+        
         if ROPT != None:
             if len(ROPT) > 0:
                 Ropt = np.double(ROPT)
         
-        transfer_numbers_fig, bottom, top = clc.get_transfer_numbers(balance, Ropt, xy_diagram, plot_type='plotly')
-        transfer_numbers_fig.update_layout(
-            title_text=f'Определение числа единиц переноса. Интеграл нижней части n={bottom}, Интеграл верхней части n={top}',
-            title_font_size=14, 
-            title_x=0.5)
-        
-        diameter = clc.calculate_diameter(balance, Ropt, properties, filling_name=FILLING)
-        height = clc.calculate_height(
-            balance,
-            properties,
-            diameter,
-            xy_diagram,
-            bottom,
-            top,
-            Substance,
-            Ropt,
-            PRESSURE,
-            filling_name=FILLING)
+        properties = clc.calculate_properties(diagram, balance, Substance)
+        diameter = clc.calculate_plate_diameter(balance, Ropt, properties)
+        plate = clc.get_plate(diameter)
+        plate_coeffs = clc.get_plate_coeffs(aqua_liquid_saturation, diameter, plate, properties, Substance, PRESSURE)
+        kinetic_frame = get_kinetic_frame(xy_diagram, plate_coeffs, balance, properties, plate, Ropt, diameter, 20)
+        height_figure, height = clc.get_plate_column_height(Ropt, balance, kinetic_frame, diagram, diameter, plot_type='plotly')
         thermal_balance = clc.calculate_thermal_balance(balance, properties, Ropt)
                
         return (dbc.Table.from_dataframe(balance, index=True, header=False),
                 phlegm_number_fig,
-                Ropt_fig,
-                transfer_numbers_fig,
+                Ropt_fig,                
                 dbc.Table.from_dataframe(diameter, index=True, header=False),
                 dbc.Table.from_dataframe(height, index=True, header=False),
                 dbc.Table.from_dataframe(thermal_balance, index=True, header=False),
+                height_figure,
+                dbc.Table.from_dataframe(plate, index=True, header=False),
+                dbc.Table.from_dataframe(round(kinetic_frame, 3), index=True, header=True),
+                dbc.Table.from_dataframe(plate_coeffs, index=True, header=False),
                 )
         
 @app.callback(
-    Output("heater-figure", "figure"),
-    Output("evaporator-figure", "figure"),
-    Output("capacitor-figure", "figure"),
-    Output("distillate-cooler-figure", "figure"),
-    Output("bottom-cooler-figure", "figure"),
-    [State("FEED-TEMPERATURE", "value"),
-     State("heater-radioitems", "value"),
-     State('heater-pressure-slider', "value"),
-     State('evaporator-pressure-slider', "value"),
-     State("capacitor-radioitems", "value"),
-     State('capacitor-t-slider', "value"),
-     State("distillate-cooler-radioitems", "value"),
-     State("distillate-cooler-aq-t", "value"),
-     State("distillate-cooler-tk", "value"),
-     State("bottom-cooler-radioitems", "value"),
-     State("bottom-cooler-aq-t", "value"),
-     State("bottom-cooler-tk", "value"),
-     Input("heaters-button", "n_clicks"),]
+    Output("plate-heater-figure", "figure"),
+    Output("plate-evaporator-figure", "figure"),
+    Output("plate-capacitor-figure", "figure"),
+    Output("plate-distillate-cooler-figure", "figure"),
+    Output("plate-bottom-cooler-figure", "figure"),
+    [State("plate-FEED-TEMPERATURE", "value"),
+     State("plate-heater-radioitems", "value"),
+     State('plate-heater-pressure-slider', "value"),
+     State('plate-evaporator-pressure-slider', "value"),
+     State("plate-capacitor-radioitems", "value"),
+     State('plate-capacitor-t-slider', "value"),
+     State("plate-distillate-cooler-radioitems", "value"),
+     State("plate-distillate-cooler-aq-t", "value"),
+     State("plate-distillate-cooler-tk", "value"),
+     State("plate-bottom-cooler-radioitems", "value"),
+     State("plate-bottom-cooler-aq-t", "value"),
+     State("plate-bottom-cooler-tk", "value"),
+     Input("plate-heaters-button", "n_clicks"),]
     
 )
 def on_heaters_button_click(FEED_TEMPERATURE, HEATER_ORIENTACION, HEATER_AQ_PRESSURE, 
@@ -729,12 +716,12 @@ def on_heaters_button_click(FEED_TEMPERATURE, HEATER_ORIENTACION, HEATER_AQ_PRES
                 bottom_cooler_figure)
         
 @app.callback(
-    Output(component_id='heater-table', component_property='children'),
-    [State("FEED-TEMPERATURE", "value"),
-     Input("heater-radioitems", "value"),
-     Input('heater-pressure-slider', "value"),
-     Input("heaters-dropdown", "value"),
-     Input("heaters-pipes-dropdown", "value"),
+    Output(component_id='plate-heater-table', component_property='children'),
+    [State("plate-FEED-TEMPERATURE", "value"),
+     Input("plate-heater-radioitems", "value"),
+     Input('plate-heater-pressure-slider', "value"),
+     Input("plate-heaters-dropdown", "value"),
+     Input("plate-heaters-pipes-dropdown", "value"),
      ]
 )
 def create_heater_table(FEED_TEMPERATURE, HEATER_ORIENTACION, HEATER_AQ_PRESSURE, HEATER_MODEL, PIPES):
@@ -773,10 +760,10 @@ def create_heater_table(FEED_TEMPERATURE, HEATER_ORIENTACION, HEATER_AQ_PRESSURE
     return dbc.Table.from_dataframe(heater, index=True, header=False)
 
 @app.callback(
-    Output(component_id='evaporator-table', component_property='children'),
-    [Input('evaporator-pressure-slider', "value"),     
-     Input("evaporators-dropdown", "value"),
-     Input("evaporators-pipes-dropdown", "value"),
+    Output(component_id='plate-evaporator-table', component_property='children'),
+    [Input('plate-evaporator-pressure-slider', "value"),     
+     Input("plate-evaporators-dropdown", "value"),
+     Input("plate-evaporators-pipes-dropdown", "value"),
      ]
 )
 def create_evaporator_table(EVAPOREATOR_AQ_PRESSURE, EVAPORATOR_MODEL, PIPES):
@@ -800,11 +787,11 @@ def create_evaporator_table(EVAPOREATOR_AQ_PRESSURE, EVAPORATOR_MODEL, PIPES):
     return dbc.Table.from_dataframe(evaporator, index=True, header=False)
 
 @app.callback(
-    Output(component_id='capacitor-table', component_property='children'),
-    [Input("capacitor-radioitems", "value"),
-     Input('capacitor-t-slider', "value"),
-     Input("capacitors-dropdown", "value"),
-     Input("capacitors-pipes-dropdown", "value"),
+    Output(component_id='plate-capacitor-table', component_property='children'),
+    [Input("plate-capacitor-radioitems", "value"),
+     Input('plate-capacitor-t-slider', "value"),
+     Input("plate-capacitors-dropdown", "value"),
+     Input("plate-capacitors-pipes-dropdown", "value"),
      ]
 )
 def create_capacitor_table(CAPACITOR_ORIENTACION, CAPACITOR_T, CAPACITOR_MODEL, PIPES):
@@ -835,12 +822,12 @@ def create_capacitor_table(CAPACITOR_ORIENTACION, CAPACITOR_T, CAPACITOR_MODEL, 
     return dbc.Table.from_dataframe(capacitor, index=True, header=False)
 
 @app.callback(
-    Output(component_id='bottom-cooler-table', component_property='children'),
-    [Input("bottom-cooler-radioitems", "value"),
-     Input("bottom-cooler-aq-t", "value"),
-     Input("bottom-cooler-tk", "value"),
-     Input("bottom-coolers-dropdown", "value"),
-     Input("bottom-coolers-pipes-dropdown", "value"),
+    Output(component_id='plate-bottom-cooler-table', component_property='children'),
+    [Input("plate-bottom-cooler-radioitems", "value"),
+     Input("plate-bottom-cooler-aq-t", "value"),
+     Input("plate-bottom-cooler-tk", "value"),
+     Input("plate-bottom-coolers-dropdown", "value"),
+     Input("plate-bottom-coolers-pipes-dropdown", "value"),
      ]
 )
 def create_bottom_cooler_table(BOTTOM_PIPES, BOTTOM_AQ_T, BOTTOM_TK, BOTTOM_MODEL, PIPES):
@@ -878,12 +865,12 @@ def create_bottom_cooler_table(BOTTOM_PIPES, BOTTOM_AQ_T, BOTTOM_TK, BOTTOM_MODE
     return dbc.Table.from_dataframe(bottom_cooler, index=True, header=False)
 
 @app.callback(
-    Output(component_id='distillate-cooler-table', component_property='children'),
-    [Input("distillate-cooler-radioitems", "value"),
-     Input("distillate-cooler-aq-t", "value"),
-     Input("distillate-cooler-tk", "value"),
-     Input("distillate-coolers-dropdown", "value"),
-     Input("distillate-coolers-pipes-dropdown", "value"),
+    Output(component_id='plate-distillate-cooler-table', component_property='children'),
+    [Input("plate-distillate-cooler-radioitems", "value"),
+     Input("plate-distillate-cooler-aq-t", "value"),
+     Input("plate-distillate-cooler-tk", "value"),
+     Input("plate-distillate-coolers-dropdown", "value"),
+     Input("plate-distillate-coolers-pipes-dropdown", "value"),
      ]
 )
 def create_distillate_cooler_table(DISTILLATE_PIPES, DISTILLATE_AQ_T, DISTILLATE_TK, DISTILLATE_MODEL, PIPES):
@@ -919,3 +906,5 @@ def create_distillate_cooler_table(DISTILLATE_PIPES, DISTILLATE_AQ_T, DISTILLATE
         call = 'direct')
     
     return dbc.Table.from_dataframe(distillate_cooler, index=True, header=False)
+    
+    

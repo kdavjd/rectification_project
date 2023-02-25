@@ -1,11 +1,11 @@
 from dash import html, dcc, Input, Output
 import dash_bootstrap_components as dbc
 
-from app import app
-from filling_tab import filling_layout
-from plate_tab import plate_layout
-from table_tab import table_tab_layout
-from start_tab import start_tab_layout
+from app_folder.app import app
+from app_folder.filling_tab import filling_layout
+from app_folder.plate_tab import plate_layout
+from app_folder.table_tab import table_tab_layout
+from app_folder.start_tab import start_tab_layout
 
 server = app.server
 
