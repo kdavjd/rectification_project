@@ -86,7 +86,7 @@ ph_organic = dfс.delete_hyphens(ph_organic,exclude_list)
 ph_gases = dfс.delete_hyphens(ph_gases,exclude_list)
 #am = delete_hyphens(am)
 
-class Сomponent():
+class Component():
                 
     def __init__(self, name):        
         self.interfactial_tension_organic_liquid = interfactial_tension_organic_liquid[interfactial_tension_organic_liquid['name'] == name].drop('name', axis=1)
@@ -96,10 +96,37 @@ class Сomponent():
         self.vapor_pressure_organic_liquid = vapor_pressure_organic_liquid[vapor_pressure_organic_liquid['name'] == name].drop('name', axis=1)
         self.heat_capacity_organic_liquid = heat_capacity_organic_liquid[heat_capacity_organic_liquid['name'] == name].drop('name', axis=1)
         self.vicosity_organic_liquid = vicosity_organic_liquid[vicosity_organic_liquid['name'] == name].drop('name', axis=1)
-        self.vicosity_organic_liquid = vicosity_organic_liquid[vicosity_organic_liquid['name'] == name].drop('name', axis=1)
-        self.density_organic_liquid = density_organic_liquid[density_organic_liquid['name'] == name].drop('name', axis=1)
         self.vicosity_organic_vapor = vicosity_organic_vapor[vicosity_organic_vapor['name'] == name].drop('name', axis=1)
+        self.density_organic_liquid = density_organic_liquid[density_organic_liquid['name'] == name].drop('name', axis=1)
         self.ph_organic = ph_organic[ph_organic['name'] == name]
+    
+    def __getitem__(self, key):
+        # определяем, что происходит, когда доступ к элементу осуществляется 
+        # с помощью квадратных скобок []
+        # здесь мы возвращаем нужный атрибут на основе ключевого аргумента
+        if key == 'interfactial_tension_organic_liquid':
+            return self.interfactial_tension_organic_liquid
+        elif key == 'thermal_conductivity_organic_liquid':
+            return self.thermal_conductivity_organic_liquid
+        elif key == 'thermal_expansion_organic_liquid':
+            return self.thermal_expansion_organic_liquid
+        elif key == 'heat_vaporization_organic_liquid':
+            return self.heat_vaporization_organic_liquid
+        elif key == 'vapor_pressure_organic_liquid':
+            return self.vapor_pressure_organic_liquid
+        elif key == 'heat_capacity_organic_liquid':
+            return self.heat_capacity_organic_liquid
+        elif key == 'vicosity_organic_liquid':
+            return self.vicosity_organic_liquid
+        elif key == 'vicosity_organic_vapor':
+            return self.vicosity_organic_vapor
+        elif key == 'density_organic_liquid':
+            return self.density_organic_liquid
+        elif key == 'ph_organic':
+            return self.ph_organic
+        else:
+            raise KeyError(f'Invalid key: {key}')
+
         
 
 

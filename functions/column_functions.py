@@ -11,30 +11,18 @@ from .data_functions import DataFunctions as dfc
 class Calculations():
     
     def get_plate_column_height(Ropt, balance, kinetic_frame, diagram, diameter, plot_type='matplotlib'):
-        """The function get_plate_column_height is used to calculate the height of a staircase-shaped plate column.
-        This function has the following inputs:
+        """Функция для расчета высоты тарелочной колонны.
 
-            Ropt: a float value that represents the optimum value of the reduction ratio.
-            balance: a dictionary that contains balance information for the plate column.
-            kinetic_frame: a pandas DataFrame that contains information about the kinetic curve.
-            diagram: a pandas DataFrame that contains information about a diagram.
-            diameter: a float value that represents the diameter of the plate column.
-            plot_type (optional): a string value that determines the type of plot to be generated (default is 'matplotlib').
-            
-            The function first uses the get_coeffs method from the dfc module to calculate the coefficients of the kinematic diagram.
-            Then, it uses the get_fit method to get the x-y coordinate values of the kinematic diagram and the diagram.
-            Next, the function calculates the values of yf, xw, xf, and xp based on the balance information. 
-            It then defines a function biuld_phlegm_lines that returns the lines calculated from the values of _x, _y, x_, and y_.
+        Args:
+            Ropt (float): Значение оптимального флегмового числа
+            balance (pd.Series): Словарь параметров материального баланса.
+            kinetic_frame (pd.Dataframe): Таблица с данными расчета кинетической кривой
+            diagram (pd.Dataframe): Таблица диаграммы дистилляции.
+            diameter (pd.Series): Словарь параметров расчета диаметра колонны.
+            plot_type (str, optional): _description_. Defaults to 'matplotlib'.
 
-            The main part of the function calculates the height of the staircase-shaped plate column. 
-            It does this by looping through the platform and step lists until step[-1] is less than or equal to xp. 
-            In each iteration, the bottom and top working lines are calculated using the biuld_phlegm_lines function. 
-            The roots of the bottom working line are calculated in the first loop, while the roots of the top working line are calculated in the second loop.
-            The values of the kinematic diagram evaluated at each platform value are appended to the step list.
-
-            Finally, the function calculates the values of the stair line along the x and y axes by unzipping the sort_corners list 
-            and plotting the stair line using the plot_type input.
-            The height of the staircase-shaped plate column is then calculated by subtracting the yf value from the height of the stair line.
+        Returns:
+            pd.Series: Словарь с числом действительных тарелок и высотой колонны.
         """
         kinematic_diagram=dfc.get_coeffs(
             kinetic_frame['значение кинетической кривой'].index,
@@ -161,39 +149,31 @@ class Calculations():
             return fig, pd.Series(
                 {'общее число действительных тарелок':len(step),
                  'высота колонны':((len(step) - 1)*0.5+Zv+Zn)})
+            
     
     def calculate_kinetic_slice(
         x, xy_diagram, plate_coeffs, balance, properties, plate, Ropt, diameter):
-        """It calculates kinetic slice for a distillation plate by performing several operations.
-
-            It has the following parameters:
-
-            x: Unknown
-            xy_diagram: A polynomial function represented as an array of coefficients.
-            plate_coeffs: A dictionary containing coefficients related to the distillation plate.
-            balance: Unknown
-            properties: A dictionary containing properties related to the distillation process such as density and viscosity of liquid and vapor.
-            plate: A dictionary containing information about the distillation plate.
-            Ropt: Optimal reflux ratio.
-            diameter: A dictionary containing the diameter of the distillation column.
-            
-            The function starts with defining a function "tg" to find the derivative of a function. 
-            The derivative is found by computing the tangent of the angle of inclination of the tangent to the function.
-            Then there is a function "mass_transfer_factor" to calculate the mass transfer factor. 
-            The calculation is done based on the derivative of the equilibrium curve and the Ropt value.
-            The "bypass_fraction" function calculates the bypass fraction. 
-            The calculation is based on the steam velocity and the density of the steam in the lower or upper part of the column.
-            The "mixing_cells" function calculates the number of mixing cells in the distillation column.
-            It is based on the diameter of the column and a constant value of 0.35.
-            The "liquid_entrainment" function calculates the liquid entrainment. 
-            It takes the location (either upper or lower part of the column) as an input and returns the calculated entrainment value.
-            The calculation is based on various properties such as density and viscosity of the liquid and vapor, 
-            and the diameter of the distillation column.
-
-            In summary, this function calculates the kinetic slice for a distillation plate 
-            by performing several calculations based on various inputs such as
-            polynomial functions, properties of the distillation process, and information about the distillation column.
-            """
+        """
+        Расчетный метод для определения параметров работы тарелочного колонного аппарата.
+        
+        Args:
+        x : float
+            Параметр, определяющий положение в колонне.
+        xy_diagram : np.array
+            Диаграмма равновесных состояний.
+        plate_coeffs : dict
+            Коэффициенты, характеризующие работу тарелки.
+        balance : dict
+            Словарь параметров материального баланса.
+        properties : dict
+            Свойства компонентов.
+        plate : dict
+            Словарь параметров тарелки.
+        Ropt : float
+            Оптимальное значение коэффициента обогащения.
+        diameter : dict
+            Словарь диаметров стандартных обечаек.
+        """
         
         #найдем производную функции как тангенс угла наклона касательной к функции
         def tg(x, dx=0.01):
@@ -264,6 +244,7 @@ class Calculations():
                 Hc = H - hp
                 return np.polyval(e, plate['скорость пара в рабочем сечении тарелки']/m/Hc)
             
+            
         def get_kinetic_y(x, Emy, loc = 'низа'):
             nonlocal Ropt
             nonlocal balance
@@ -326,7 +307,6 @@ class Calculations():
                 get_kinetic_y(x, values['эффективность по Мёрфи'], loc='низа'))
             
         else:
-            
             values['коэффициент массопередачи'] = (
                 1/((1/plate_coeffs['коэффициент массоотдачи пара верха на кмоль'])
                 +tg(x)/plate_coeffs['коэффициент массоотдачи жидкости верха на кмоль']))
@@ -369,6 +349,7 @@ class Calculations():
                 get_kinetic_y(x, values['эффективность по Мёрфи'], loc='верха'))
                 
         return values
+    
     
     def get_plate_coeffs(
         aqua_liquid_saturation, diameter, plate, properties, Substance, PRESSURE):
@@ -555,19 +536,25 @@ class Calculations():
         
         return bubble_layer
     
+    
     def get_plate(diameter, plate_type = 'ТС—Р'):
-        """The get_plate function performs the following actions:
+        """
+        Функция для получения характеристик ситчатых тарелок из таблицы
         
-            Reads an excel file with the technical specifications of sintered plates of type "ТС—Р" into a Pandas dataframe.
-            Creates an array called hole_list containing the values [3, 4, 5, 8].
-            Filters the dataframe to include only rows with a type of plate equal to plate_type and a diameter column equal to the diameter argument.
-            Creates a list free_section_list containing the maximum free section from the plate for each of the holes in the hole_list array.
-            Calculates the maximum vapor speed of the diameter argument and assigns it to the vapor_speed variable.
-            Calculates the vapor speed in the working section of the plate using the vapor_speed and plate area.
-            
-            Returns a Pandas series with the following columns: vapor speed in the working section of the plate, working section of the plate, 
-            plate type, relative free section of the plate, height of the overflow threshold, and width of the overflow threshold.
-            """
+        Args:
+        diameter: dict
+            Словарь со значением стандартного размера обечайки и скорости пара верха и низа
+        plate_type: str, optional
+            Тип тарелки (по умолчанию 'ТС—Р')
+                
+        Returns:
+        -------
+        pd.Series:
+        Серия со значением скорости пара в рабочем сечении тарелки, рабочего сечения тарелки,
+        типа тарелки, относительного свободного сечения тарелки, высоты переливного порога
+        и ширины переливного порога.
+
+        """
     
         table_plate = pd.read_excel('tables/Техническая характеристика ситчатых тарелок типа ТС.xlsx')
         hole_list=np.array([3,4,5,8])
@@ -592,16 +579,11 @@ class Calculations():
                         'относительное свободное сечение тарелки':free_section,
                         'высота переливного порога':0.03,
                         'ширина переливного порога':plate['Периметр слива Lc, м'].values})
+        
     
     def calculate_plate_diameter(balance, Ropt, properties, plate_type = 'ситчатая'):
         """
-            The code defines a function calculate_plate_diameter that calculates the diameter of a plate in a distillation column.
-            It calculates the mass flow of liquid and gas at the top and bottom of the column,
-            and the speed of the gas based on whether the plate is sichataya or not. 
-            It then calculates the diameter of the plate at the top and bottom using the mass flow of gas,
-            speed of gas, and properties of the liquid and gas. The properties of the liquid and gas are passed to the function as a dictionary,
-            and the type of plate is set as a default to sichataya. The function returns a series of calculated diameters.
-            
+        
         """
         standart_list = np.array([0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.2, 2.6, 3.0])
         diameter = pd.Series(dtype = float)
@@ -663,7 +645,8 @@ class Calculations():
             *(diameter['диаметр низа']
               /diameter['стандартный размер обечайки'])**2)
 
-        return diameter    
+        return diameter
+    
     
     def material_balance(F, xf, xp, xw, diagram, Substance) -> pd.DataFrame:
         """Получает основные переменные материального баланса для дальнейших расчетов
@@ -673,7 +656,7 @@ class Calculations():
             xf (np.double): Содержние в исходной смеси %масс Ллт 
             xp (np.double): Содержние в дистилляте(ректификате) %масс
             xw (np.double): Содержние в кубовом остатке %масс ллт
-            diagram (numpy.ndarray): Уравнение полинома диаграмы равновесия по абсциссе жидкость по ординате пар
+            diagram (pd.Dataframe): Таблица диаграммы дистилляции.
             Substance (Component): Список из двух объектов класса Компонент в которых хранятся свойства разделяемых веществ
 
         Returns:
@@ -694,6 +677,7 @@ class Calculations():
                            /(balance['yf'] - balance['xf']))
         
         return balance
+    
 
     def get_value(component,attribute,temperature):
         """Возвращшает значение искомого параметра
@@ -705,7 +689,7 @@ class Calculations():
 
         Returns:
             : значение параметра
-        """
+        """ 
         
         attr = getattr(component, attribute)
         attr = attr.dropna(axis=1)
@@ -829,7 +813,9 @@ class Calculations():
                     showlegend=False,
                     plot_bgcolor='white')
             return fig, R, Ngraf
+        
         return R,Ngraf
+    
     
     def get_optimal_phlegm_number(R,Ngraf, plot_type = "matplotlib"):
         """Оптимальное флегмовое число "Ropt" находят по минимуму функции R от N(R+1).
@@ -857,189 +843,137 @@ class Calculations():
         
         return Ropt
     
-    def calculate_properties_slice(liquid_fraction, vapor_fraction, temperature, Substance, Ma, Mb, slice_type = 'DataFrame'):
-        
-        #Теплопроводность компонента А [Вт/(м*K)]
-        thermal_conductivity_a = Calculations.get_value(
-            component= Substance['A'],
-            attribute='thermal_conductivity_organic_liquid', 
-            temperature=temperature)
-        
-        #Теплопроводность компонента Б  [Вт/(м*K)]
-        thermal_conductivity_b = Calculations.get_value(
-            component= Substance['B'],
-            attribute='thermal_conductivity_organic_liquid', 
-            temperature=temperature)
-        
-        #Коэффициенты объемного теплового расширения компонента А b*10^3, K^-1
-        thermal_expansion_a = Calculations.get_value(
-            component= Substance['A'],
-            attribute='thermal_expansion_organic_liquid', 
-            temperature=temperature)
-        
-        #Коэффициенты объемного теплового расширения компонента Б b*10^3, K^-1
-        thermal_expansion_b = Calculations.get_value(
-            component= Substance['B'],
-            attribute='thermal_expansion_organic_liquid', 
-            temperature=temperature)
-        
-        #Давление насыщенного пара [мм.рт.ст.] компонента А
-        vapor_pressure_a = Calculations.get_value(
-            component= Substance['A'],
-            attribute='vapor_pressure_organic_liquid', 
-            temperature=temperature)
-        
-        #Давление насыщенного пара [мм.рт.ст.] компонента Б
-        vapor_pressure_b = Calculations.get_value(
-            component= Substance['B'],
-            attribute='vapor_pressure_organic_liquid', 
-            temperature=temperature)
-        
-        #Поверхностное натяжение [мДж/м^2] компонента А
-        sigma_a = Calculations.get_value(
-            component= Substance['A'],
-            attribute='interfactial_tension_organic_liquid', 
-            temperature=temperature)
-        
-        #Поверхностное натяжение [мДж/м^2] компонента Б
-        sigma_b = Calculations.get_value(
-            component= Substance['B'],
-            attribute='interfactial_tension_organic_liquid', 
-            temperature=temperature)
-         
-        #Удельная теплоемкость [Дж/(кг*K)] компонента А
-        Cp_a = Calculations.get_value(
-            component= Substance['A'],
-            attribute='heat_capacity_organic_liquid', 
-            temperature=temperature)
-        
-        #Удельная теплоемкость [Дж/(кг*K)] компонента Б
-        Cp_b = Calculations.get_value(
-            component= Substance['B'],
-            attribute='heat_capacity_organic_liquid', 
-            temperature=temperature)
-        
-        #Теплота парообразования компонента А [кДж/кг]
-        Qv_a = Calculations.get_value(
-            component= Substance['A'],
-            attribute='heat_vaporization_organic_liquid', 
-            temperature=temperature)
-        
-        #Теплота парообразования компонента Б [кДж/кг]
-        Qv_b = Calculations.get_value(
-            component= Substance['B'],
-            attribute='heat_vaporization_organic_liquid', 
-            temperature=temperature)
-        
-        #Плотность [кг/м^3] компонента А
-        p_a = Calculations.get_value(
-            component= Substance['A'],
-            attribute='density_organic_liquid', 
-            temperature=temperature)
-        
-        #Плотность [кг/м^3] компонента Б
-        p_b = Calculations.get_value(
-            component= Substance['B'],
-            attribute='density_organic_liquid', 
-            temperature=temperature)
-         
-        #Динамическая вязкость [мПа*с] компонента А
-        u_a = Calculations.get_value(
-            component= Substance['A'],
-            attribute='vicosity_organic_liquid', 
-            temperature=temperature) 
-         
-        #Динамическая вязкость [мПа*с] компонента Б 
-        u_b = Calculations.get_value(
-            component= Substance['B'],
-            attribute='vicosity_organic_liquid', 
-            temperature=temperature)
-        
-        #Вязкость паров [мкПа*с] компонента А 
-        ug_a = Calculations.get_value(
-            component= Substance['A'],
-            attribute='vicosity_organic_vapor', 
-            temperature=temperature)
-        
-        #Вязкость паров [мкПа*с] компонента Б
-        ug_b = Calculations.get_value(
-            component= Substance['B'],
-            attribute='vicosity_organic_vapor', 
-            temperature=temperature)
-
-        def calculate_mixture_value(a,b,fraction):
-            value = fraction*a + (1-fraction)*b
-            return value
-
-        if slice_type == 'DataFrame':
-            slice = pd.DataFrame(dtype=np.float64)
-        else:
-            slice = pd.Series(dtype=np.float64)
-        
-        slice['температура'] = temperature
-        slice['содержание легколетучего в жидкости'] = liquid_fraction
-        slice['содержание легколетучего в паре'] = vapor_fraction
-        slice['плотность жидкости'] = calculate_mixture_value(p_a,p_b,liquid_fraction)
-        slice['теплопроводность жидкости'] = calculate_mixture_value(thermal_conductivity_a,thermal_conductivity_b,liquid_fraction)
-        slice['теплота парообразования жидкости'] = calculate_mixture_value(Qv_a,Qv_b,liquid_fraction)
-        slice['удельная теплоемкость жидкости'] = calculate_mixture_value(Cp_a,Cp_b,liquid_fraction)
-        slice['поверхностное натяжение жидкости'] = calculate_mixture_value(sigma_a,sigma_b,liquid_fraction)
-        slice['давление насыщенного пара жидкости'] = calculate_mixture_value(vapor_pressure_a,vapor_pressure_b,liquid_fraction)
-        slice['коэффициент объемного расширения жидкости'] = calculate_mixture_value(thermal_expansion_a,thermal_expansion_b,liquid_fraction)
-        slice['молярный объем газа'] = 22.4*(273.15+temperature)/273.15#Где 22.4 - молярный объем при н.у, 273.15 температура в Кельвинах
-        slice['молярная масса жидкости'] = calculate_mixture_value(Ma,Mb,liquid_fraction)
-        slice['молярная масса газа'] = calculate_mixture_value(Ma,Mb,vapor_fraction)
-        slice['плотность пара'] = slice['молярная масса газа'] / slice['молярный объем газа']
-        slice['вязкость пара']=slice['молярная масса газа']/((vapor_fraction*Ma/(ug_a/1000))+((1-vapor_fraction)*Mb/(ug_b/1000)))
-        slice['вязкость жидкости'] = 10.0**(liquid_fraction*np.log10(u_a)+(1-liquid_fraction)*np.log10(u_b))
-        slice['молярный объем жидкости'] = slice['молярная масса жидкости']/slice['плотность жидкости']*1000
-        return slice
-
-    def calculate_properties(diagram, balance, Substance):
+    
+    def calculate_properties_slice(liquid_fraction, vapor_fraction, temperature, Substance, Ma, Mb, slice_type='DataFrame'):
         """
-            This function calculates some properties of a substance based on a thermodynamic diagram and a balance.
-            It uses a subfunction slice_values which receives the liquid_fraction and balance as inputs and returns the liquid_fraction, 
-            vapor_fraction, temperature, Ma and Mb values. The calculate_properties function takes as inputs the diagram, balance,
-            and Substance and creates a data frame properties to store the results. 
-            The fraction_list variable is an array of 5 values which define the liquid, feed, and distillate fractions. 
-            The function then uses a for loop to iterate through the fraction_list and calls slice_values for each fraction. 
-            The results of each iteration are then concatenated to the properties data frame and given an index of 
-            'куба', 'низа','питания','верха','дистиллята'. The final properties data frame is returned as the output.            
+        Функция для расчета свойств слоя жидкости и пара
+        
+        Args:        
+        liquid_fraction : float
+            доля легколетучего вещества в жидкости
+        vapor_fraction : float
+            доля легколетучего вещества в паре
+        temperature : float
+            температура
+        Substance : dict
+            словарь с именами веществ A и B
+        Ma : float
+            молярная масса вещества A
+        Mb : float
+            молярная масса вещества B
+        slice_type : str, optional
+            тип возвращаемого объекта (DataFrame или Series), по умолчанию DataFrame
+            
+        Returns
+        -------
+        slice : pandas DataFrame or Series
+            возвращает результаты расчета в виде DataFrame или Series
         """
-        properties = pd.DataFrame(dtype=float)
+        
+        def calculate_vapor_viscosity(viscosity_a, viscosity_b, Ma, Mb, molar_mass, vapor_fraction):
+            return molar_mass / ((vapor_fraction * Ma / (viscosity_a / 1000))  +  ((1 - vapor_fraction) * Mb / (viscosity_b / 1000)))
 
-        def slice_values(liquid_fraction, balance):
+        def calculate_mixture_value(a, b, fraction):
+            return fraction * a + (1 - fraction) * b
+        
+        # Словарь с названиями свойств компонентов
+        component_attributes = {
+            'density_organic_liquid': 'плотность жидкости',
+            'thermal_conductivity_organic_liquid': 'теплопроводность жидкости',
+            'heat_vaporization_organic_liquid': 'теплота парообразования жидкости',
+            'heat_capacity_organic_liquid': 'удельная теплоемкость жидкости',
+            'interfactial_tension_organic_liquid': 'поверхностное натяжение жидкости',
+            'vapor_pressure_organic_liquid': 'давление насыщенного пара жидкости',
+            'thermal_expansion_organic_liquid': 'коэффициент объемного расширения жидкости',
+            'vicosity_organic_liquid': 'вязкость жидкости',            
+        }
+        # Словарь со значениями расчитанных свойств
+        values = {'температура': temperature,
+                'содержание легколетучего в жидкости': liquid_fraction,
+                'содержание легколетучего в паре': vapor_fraction,
+                'молярный объем газа': 22.4 * (273.15 + temperature) / 273.15,
+                'молярная масса жидкости': calculate_mixture_value(Ma, Mb, liquid_fraction),
+                'молярная масса газа': calculate_mixture_value(Ma, Mb, vapor_fraction),
+                'плотность пара': calculate_mixture_value(Ma, Mb, vapor_fraction) / (22.4 * (273.15 + temperature) / 273.15)}
+
+        for attr, name in component_attributes.items():
+            a_value = Calculations.get_value(component=Substance['A'], attribute=attr, temperature=temperature)
+            b_value = Calculations.get_value(component=Substance['B'], attribute=attr, temperature=temperature)
+            values[name] = (calculate_mixture_value(a_value, b_value, liquid_fraction) 
+                            if name != 'вязкость жидкости' 
+                            else 10 ** (liquid_fraction * np.log10(a_value) + (1 - liquid_fraction) * np.log10(b_value)))
+
+        slices = pd.DataFrame(values, index=[0], dtype=np.float64) if slice_type == 'DataFrame' else pd.Series(values, dtype=np.float64)
+        
+        a_vicosity_organic_vapor_value = Calculations.get_value(component=Substance['A'], 
+                                                    attribute='vicosity_organic_vapor', 
+                                                    temperature=temperature)
+        b_vicosity_organic_vapor_value = Calculations.get_value(component=Substance['B'], 
+                                                    attribute='vicosity_organic_vapor', 
+                                                    temperature=temperature)
+        slices['вязкость пара'] = calculate_vapor_viscosity(a_vicosity_organic_vapor_value, 
+                                                            b_vicosity_organic_vapor_value, 
+                                                            Ma, Mb, slices['молярная масса газа'], vapor_fraction)
+        slices['молярный объем жидкости'] = calculate_mixture_value(slices['молярная масса жидкости'], 
+                                                                    slices['плотность жидкости'], liquid_fraction) / 1000
+        return slices
+    
+
+    def calculate_properties(diagram, balance, substance):
+        """
+        Функция, вычисляющая свойства жидкости и пара для каждой точки на диаграмме дистилляции.
+        
+        Args
+        ----------
+        diagram : dict
+            словарь с x, y и t (температурой) диаграммы дистилляции
+        balance : dict
+            словарь с информацией о xw, xf, xp, Ma, Mb
+        substance : dict
+            словарь содержащий объекты класса Component c ключами A и B
+        
+        Returns
+        -------
+        properties : pandas DataFrame
+            возвращает результаты расчета в виде DataFrame
+        """
+        def get_properties(liquid_fraction, balance, diagram):
             fx = dfc.get_coeffs(diagram['x'], diagram['t'])
             fy = dfc.get_coeffs(diagram['y'], diagram['t'])
             
             temperature = np.poly1d(fx)(liquid_fraction)
+                
+            yt = np.poly1d(fy)(np.linspace(0, 1, 100))
+            vapor_fraction = np.count_nonzero(yt > temperature) / 100
             
-            yt=[]
-            x = np.linspace(0,1,100)
-            yt = np.poly1d(fy)(x)
-            
-            vapor_fraction = np.array([len(yt[yt>temperature])/100])#Мольная доля ллт в паровой фазе при искомой температуре
-            
-            return liquid_fraction, vapor_fraction, temperature, balance['Ma'], balance['Mb']
-
-        fraction_list = np.array([balance['xw'], (balance['xw']+balance['xf'])/2, balance['xf'], (balance['xf']+balance['xp'])/2, balance['xp']])
-
-        for fraction in fraction_list:
-            liquid_fraction, vapor_fraction, temperature, Ma, Mb = slice_values(fraction, balance)
-            slice = Calculations.calculate_properties_slice(liquid_fraction, vapor_fraction, temperature, Substance, Ma, Mb)
-            properties = pd.concat([properties, slice])
+            return vapor_fraction, temperature, balance['Ma'], balance['Mb']
         
-        properties.index = ['куба', 'низа','питания','верха','дистиллята']
+        properties = pd.DataFrame(dtype=float)
+        fractions = [balance['xw'], (balance['xw'] + balance['xf']) / 2, 
+                    balance['xf'], (balance['xf'] + balance['xp']) / 2, 
+                    balance['xp']]
+        
+        for liquid_fraction in fractions:
+            vapor_fraction, temperature, Ma, Mb = get_properties(liquid_fraction, balance, diagram)
+            slice = Calculations.calculate_properties_slice(liquid_fraction, vapor_fraction, temperature, substance, Ma, Mb)
+            properties = pd.concat([properties, slice])
+            
+        properties.index = ['куба', 'низа', 'питания', 'верха', 'дистиллята']
         return properties
+    
     
     def get_transfer_numbers(balance, Ropt, xy_diagram, plot_type = 'matplotlib'):
         """Функция возвращает число единиц переноса для модифицированного уравнения массопередачи. Подробнее в [1] стр 232
 
         Args:
-            balance (pd.Series): результат функции material_balance
-            Ropt (float): Оптимальное флегмовое число
-            xy_diagram (np.array): аппроксимация диаграммы жидкость-пар полиномом
-            plot_type (str, optional): если plotly, то функция вернет fig, bottom, top. Defaults to 'matplotlib'.
+            balance (pd.Series): 
+                результат функции material_balance
+            Ropt (float): 
+                Оптимальное флегмовое число
+            xy_diagram (np.array): 
+                аппроксимация диаграммы жидкость-пар полиномом
+            plot_type (str, optional): 
+                если plotly, то функция вернет fig, bottom, top. Defaults to 'matplotlib'.
 
         Returns:
             bottom, top: if plot_type != 'plotly'. Число единиц переноса вверху колонны и внизу
@@ -1432,8 +1366,7 @@ class Calculations():
         hight['коэффициент диффузии жидкости верха'] = (
             hight['коэффициент диффузии жидкости верха при 20°С']
             *(1 + hight['температурный коэффициент верха']
-              *(properties['температура']['верха'] - 20)))
-        
+              *(properties['температура']['верха'] - 20)))        
             
         hight['коэффициент диффузии пара верха'] = (
             np.double(4.22*10**(-2))
@@ -1560,7 +1493,6 @@ class Calculations():
             balance['массовый расход в питателе']
             *properties['теплота парообразования жидкости']['питания'])
 
-
         thermal_balance['теплота исходной смеси'] = (
             balance['массовый расход в питателе']
             *properties['температура']['питания']
@@ -1583,6 +1515,7 @@ class Calculations():
             -thermal_balance['теплота исходной смеси'])
         
         return thermal_balance
+    
 
 class Figures():
     
@@ -1839,6 +1772,8 @@ class Figures():
                                 zeroline=False)
         
         return fig
+    
+    
     def plot_optimal_phlegm_number(R, Ngraf, Nfit, optimal, Ropt, plot_type):
     
         if plot_type == 'matplotlib':
@@ -1905,19 +1840,22 @@ class Figures():
     def plot_plate_column_height(stair_line_x, stair_line_y, diagram, diagram_xy, kinetic_frame, kinetic_xy,
                             _x, W_line, x_, P_line, _):
         fig = go.Figure()            
-        fig.add_trace(go.Scatter(x=list(map(float, stair_line_x)), y=list(map(float, stair_line_y)),
+        fig.add_trace(go.Scatter(x=list(map(float, stair_line_x)), 
+                                 y=list(map(float, stair_line_y)),
                                 line=dict(
                                     color='red',
                                     width=1),
                                 mode='lines',
                                 name='ступени изменения концентраций'))            
-        fig.add_trace(go.Scatter(x=diagram['x'], y=diagram_xy,
+        fig.add_trace(go.Scatter(x=diagram['x'], 
+                                 y=diagram_xy,
                                 line=dict(
                                     color='black',
                                     width=0.5),
                                 mode='lines',
                                 name='аппроксимация x-y диаграммы'))            
-        fig.add_trace(go.Scatter(x=kinetic_frame['значение кинетической кривой'].index, y=kinetic_xy,
+        fig.add_trace(go.Scatter(x=kinetic_frame['значение кинетической кривой'].index, 
+                                 y=kinetic_xy,
                                 line=dict(
                                     color='blue',
                                     width=2),

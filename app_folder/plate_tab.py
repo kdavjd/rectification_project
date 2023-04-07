@@ -104,7 +104,7 @@ def get_kinetic_frame(xy_diagram, plate_coeffs, balance, properties, plate, Ropt
     kinetic_frame.index = list(*np.round(kinetic_list, 2).T)
     return kinetic_frame
 
-Substance = {'A':Сomponent(name='Толуол'), 'B':Сomponent(name='Тетрахлорметан')}
+Substance = {'A':Component(name='Толуол'), 'B':Component(name='Тетрахлорметан')}
 diagram = pd.read_excel('l_v/C6H5CH3-CCl4.xlsx')
 
 if diagram['x'].values.max() > 1:
@@ -398,8 +398,8 @@ def get_diagram(SUBSTANCE, A_COMPONENT, B_COMPONENT, SORT, LIQUID, VAPOR, TEMPER
             diagram['y'] = diagram['y']/100
         
         
-        Substance = {'A':Сomponent(name=str(*ph_organic[ph_organic.formula == get_a_name(SUBSTANCE)].name.values)),
-                     'B':Сomponent(name=str(*ph_organic[ph_organic.formula == get_b_name(SUBSTANCE)].name.values))}
+        Substance = {'A':Component(name=str(*ph_organic[ph_organic.formula == get_a_name(SUBSTANCE)].name.values)),
+                     'B':Component(name=str(*ph_organic[ph_organic.formula == get_b_name(SUBSTANCE)].name.values))}
         
         if TEMPERATURE != None and len(TEMPERATURE) > 0:
             tails = TEMPERATURE.split(sep=',')
@@ -423,8 +423,8 @@ def get_diagram(SUBSTANCE, A_COMPONENT, B_COMPONENT, SORT, LIQUID, VAPOR, TEMPER
         
         diagram.sort_values(by = [SORT], ascending=True,ignore_index=True, inplace=True)
         
-        Substance = {'A':Сomponent(name=A_COMPONENT),
-                     'B':Сomponent(name=B_COMPONENT)}
+        Substance = {'A':Component(name=A_COMPONENT),
+                     'B':Component(name=B_COMPONENT)}
     
     return (html.Div(dbc.Table.from_dataframe(df=round(ends(diagram),2), index=True)),
             figures.plot_xy_diagram(diagram, get_a_name(A_COMPONENT), plot_type='plotly'))

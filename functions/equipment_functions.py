@@ -6,7 +6,6 @@ from .data_functions import DataFunctions as dfc
 from .column_functions import Calculations as clc
 
 
-
 class Calculations():
     
     def get_heater(
@@ -36,7 +35,6 @@ class Calculations():
 
         aq = aqua_liquid_saturation.loc[aqua_liquid_saturation[aqua_liquid_saturation['temperature'] >= t].index.min()]
         vap = aqua_vapor_saturation[aqua_vapor_saturation['temperature'] >= t]['specific_heat_vaporization'].min()
-
 
         heat['диаметр кожуха'] = row['D кожуха, мм']
         heat['внутренний диаметр труб'] = row['d труб, мм']
@@ -126,7 +124,6 @@ class Calculations():
             calc['тепловой поток в подогревателе']
             /(calc['коэффициент теплопередачи']*calc['cредняя движущая сила теплопередачи']))
 
-
         calc['запас поверхности, %']=(
             (np.double(heat['поверхность теплообмена'])-calc['требуемая поверхность теплообмена'])
             /heat['поверхность теплообмена']
@@ -136,6 +133,7 @@ class Calculations():
             return calc['запас поверхности, %']
         else:
             return calc
+        
         
     def get_capacitor(
         row,
@@ -231,7 +229,6 @@ class Calculations():
             thermal_balance['теплота забираемая водой в дефлегматоре']*1000
             /(calc['коэффициент теплопередачи']*calc['cредняя движущая сила теплопередачи']))
 
-
         calc['запас поверхности, %']=(
             (heat['поверхность теплообмена']-calc['требуемая поверхность теплообмена'])
             /heat['поверхность теплообмена']
@@ -241,6 +238,7 @@ class Calculations():
                 return calc['запас поверхности, %']
         else:
             return calc
+        
         
     def get_diameter(col):
         new_row = []
@@ -254,6 +252,7 @@ class Calculations():
                 new_row.append(np.NaN)
                 
         return new_row
+    
     
     def calculate_equipment(
         heaters_table,
@@ -301,8 +300,7 @@ class Calculations():
             heaters['name'] = heaters_table.apply(get_evaporator_index, axis=1)
         else:
             heaters = pd.DataFrame(columns=pipes_names)
-            heaters['name'] = heaters_table.apply(get_heater_index, axis=1)
-        
+            heaters['name'] = heaters_table.apply(get_heater_index, axis=1)        
         
         if EQ_NAME == 'подогреватель':
             for name in pipes_names:
@@ -360,6 +358,7 @@ class Calculations():
         heaters.index = heaters['name']
         heaters = heaters.drop('name', axis=1)
         return heaters
+    
     
     def get_evaporator(
         row,
@@ -436,6 +435,7 @@ class Calculations():
         else:
             return evaporator
         
+        
     def get_cooler(
         row,
         name,        
@@ -448,7 +448,6 @@ class Calculations():
         aq_t = 20,
         tk = 30,
         call = 'auto'):
-        
         
         t = aq_t #средняя температура воды в течение года
         aq = aqua_liquid_saturation.loc[aqua_liquid_saturation[aqua_liquid_saturation['temperature'] >= t].index.min()]
