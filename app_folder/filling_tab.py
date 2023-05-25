@@ -4,6 +4,7 @@ import numpy as np
 import plotly.express as px
 from dash import html, dcc, Input, Output, State
 import dash_bootstrap_components as dbc
+from dash.exceptions import PreventUpdate
 from app_folder.app import app
 
 from app_folder.app_data import *
@@ -573,9 +574,9 @@ def on_heaters_button_click(FEED_TEMPERATURE, HEATER_ORIENTACION, HEATER_AQ_PRES
     global thermal_balance
     global Ropt
     
-    if BUTTON == 0:
-        pass
-    else:
+    if BUTTON is None or BUTTON == 0:
+        raise PreventUpdate
+    else:        
         def get_values_list(value_list):
             init_values = np.double([20, 20, 30, 20, 30])
             for i,value in enumerate(init_values):
