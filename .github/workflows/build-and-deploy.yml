@@ -48,6 +48,6 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_KEY }}
         script: |
-          docker-compose -f /opt/docker/rectification/docker-compose.yml pull
-          docker-compose -f /opt/docker/rectification/docker-compose.yml up -d
-          docker-compose -f /opt/docker/rectification/docker-compose.yml restart
+          docker compose -f /opt/docker/rectification/docker-compose.yml pull
+          docker compose -f /opt/docker/rectification/docker-compose.yml up -d
+          docker compose -f /opt/docker/rectification/docker-compose.yml restart
